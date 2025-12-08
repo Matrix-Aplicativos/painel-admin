@@ -1,0 +1,68 @@
+/* src/components/SearchBar.module.css (COMPLETO E ATUALIZADO) */
+
+.searchBarContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  min-width: 250px;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  /* ALTERADO: Removida a propriedade 'flex-grow: 1' para que não expanda mais */
+}
+
+.input {
+  width: 380px;
+  padding: 8px 40px 8px 10px;
+  font-size: 14px;
+  color: #000000;
+  border: 1px solid #ccc;
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #0070f3;
+}
+
+.searchButton {
+  padding: 8px 15px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  background-color: #0070f3;
+  border: 1px solid #0070f3;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  height: 39px;
+  box-sizing: border-box;
+  width: 90px;
+}
+
+.searchButton:hover {
+  background-color: #005bb5;
+}
+
+.icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: #1565c0;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 0.2s;
+}
+
+.icon:hover {
+  color: #0070f3;
+}

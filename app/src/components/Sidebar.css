@@ -1,0 +1,123 @@
+.sidebar {
+  /* Flex Config */
+  flex-shrink: 0;
+  height: 100%;
+
+  /* Tamanho e Animação */
+  width: 200px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Visual */
+  background-color: var(--modal-bg-color, #fff);
+  border-right: 1px solid var(--wrapper-border-color, #ddd);
+  z-index: 50;
+
+  /* Layout Interno */
+  display: flex;
+  flex-direction: column;
+  padding: 20px 10px 60px 10px; /* Padding bottom 60px pro botão Sair não cortar */
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.sidebar.closed {
+  width: 70px;
+}
+
+.header-sidebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  white-space: nowrap;
+  min-height: 40px;
+}
+.sidebar.closed .header-sidebar {
+  justify-content: center;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--header-text-color, #333);
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  flex-grow: 1; /* Empurra o rodapé para baixo */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  font-size: 14px;
+  gap: 15px;
+  padding: 12px 15px;
+  color: var(--text-secondary-color, #333);
+  text-decoration: none;
+  margin: 4px 0;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+.sidebar.closed .menu-item {
+  justify-content: center;
+  padding: 12px 0;
+}
+.menu-item:hover {
+  background-color: var(--button-active-bg-color, #1769e3);
+  color: white;
+}
+.menu-item svg {
+  flex-shrink: 0;
+  font-size: 22px;
+}
+
+.menu-text,
+.user-info span {
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+.sidebar.closed .menu-text,
+.sidebar.closed .user-info span,
+.sidebar.closed .logout-text {
+  display: none;
+  opacity: 0;
+}
+
+.bottom-section {
+  border-top: 1px solid var(--wrapper-border-color, #ddd);
+  padding-top: 15px;
+  flex-shrink: 0;
+  margin-top: auto;
+}
+.menu-item.logout {
+  color: #ef4444;
+  font-weight: 400;
+}
+.menu-item.logout:hover {
+  background-color: #ef4444;
+  color: white;
+}
+.user-info {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--header-text-color, #333);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -1,0 +1,221 @@
+.container {
+  width: 100%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+  padding-bottom: 520px;
+}
+
+.primaryButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: #17e381;
+  border: 1px solid #17e381;
+  border-radius: 6px;
+  cursor: pointer;
+  color: black;
+  font-weight: 400;
+  transition: all 0.2s;
+  width: fit-content;
+  margin-bottom: 15px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.titleArea {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  text-transform: uppercase;
+}
+
+.statusBadge {
+  background-color: #dcfce7;
+  color: #166534;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.headerButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 400;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: white;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.btnBlue {
+  background-color: #1769e3;
+}
+.btnRed {
+  background-color: #d32f2f;
+}
+.btnGreen {
+  background-color: #17e381;
+  color: black;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: bold;
+  color: #444;
+  margin-bottom: 10px;
+  margin-top: 15px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 800px;
+}
+
+.inputRow {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.inputWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 200px;
+}
+
+.inputWrapper label {
+  font-size: 13px;
+  color: #888;
+}
+
+.inputWrapper input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  background-color: #fff;
+}
+
+.inputWrapper input:focus {
+  border-color: #1769e3;
+}
+
+.userActionsRow {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.rolesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 30px;
+  margin-top: 10px;
+}
+
+.roleColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.roleHeader {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 5px;
+}
+
+.checkboxItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #555;
+  text-transform: uppercase;
+}
+
+.checkboxItem input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #1769e3;
+}
+
+.companiesSection {
+  margin-top: 30px;
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.innerTableContainer {
+  width: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.btnTableAction {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 400;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  color: white;
+  margin-right: 5px;
+}
+
+.btnFuncionario {
+  background-color: #1769e3;
+}
+.btnRemover {
+  background-color: #d32f2f;
+}

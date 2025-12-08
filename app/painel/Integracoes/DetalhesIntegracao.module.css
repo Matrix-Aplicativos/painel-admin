@@ -1,0 +1,210 @@
+
+.container {
+  width: 100%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: auto; 
+  min-height: 100%; 
+  overflow: visible; 
+  padding-bottom: 60px; 
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  text-transform: uppercase;
+}
+
+.statusBadge {
+  background-color: #dcfce7;
+  color: #166534;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.topGrid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr; 
+  gap: 40px;
+  margin-bottom: 20px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: bold;
+  color: #444;
+  margin-bottom: 15px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.inputRow {
+  display: flex;
+  gap: 20px;
+}
+
+.inputWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.inputWrapper label {
+  font-size: 13px;
+  color: #888;
+}
+
+.inputWrapper input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  background-color: #fff;
+}
+
+.inputWrapper input:focus {
+  border-color: #1769e3;
+}
+
+.userActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: 400;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+  color: white;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.btnBlue {
+  background-color: #1769e3;
+}
+.btnRed {
+  background-color: #d32f2f;
+}
+.btnGreen {
+  background-color: #17e381;
+  color: black;
+}
+
+.mainActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: fit-content;
+  margin-bottom: 10px;
+}
+
+.actionRow {
+  display: flex;
+  gap: 10px;
+}
+
+.actionRow .btn {
+  min-width: 100px;
+}
+
+.companiesSection {
+  margin-top: 20px;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.filtersRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.filtersRow .inputWrapper {
+  min-width: 200px;
+}
+
+.filtersRow .btn {
+  height: 38px;
+}
+
+.primaryButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: #17e381;
+  border: 1px solid #17e381;
+  border-radius: 6px;
+  cursor: pointer;
+  color: black;
+  font-weight: 400;
+  transition: all 0.2s;
+}
+
+.innerTableContainer {
+  width: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: white;
+  overflow-x: auto; 
+}
+
+@media (max-width: 900px) {
+  .topGrid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .filtersRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filtersRow .inputWrapper {
+    width: 100%;
+  }
+
+  .mainActions {
+    width: 100%;
+  }
+
+  .actionRow .btn {
+    flex: 1;
+  }
+}
