@@ -32,9 +32,33 @@ export default function ModalIntegracao({
     senhaGerada: "",
   });
 
-  // Função para gerar senha aleatória
   const generatePassword = () => {
-    return Math.random().toString(36).slice(-8).toUpperCase();
+    const length = 16;
+    const charset = {
+      upper: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      lower: "abcdefghijklmnopqrstuvwxyz",
+      number: "0123456789",
+      symbol: "!@#$%^&*()_+~`|}{[]:;?><,./-=",
+    };
+
+    let password = "";
+    password += charset.upper[Math.floor(Math.random() * charset.upper.length)];
+    password += charset.lower[Math.floor(Math.random() * charset.lower.length)];
+    password +=
+      charset.number[Math.floor(Math.random() * charset.number.length)];
+    password +=
+      charset.symbol[Math.floor(Math.random() * charset.symbol.length)];
+
+    const allChars =
+      charset.upper + charset.lower + charset.number + charset.symbol;
+    for (let i = 4; i < length; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+
+    return password
+      .split("")
+      .sort(() => 0.5 - Math.random())
+      .join("");
   };
 
   const maskCNPJ = (value: string) => {
@@ -52,8 +76,6 @@ export default function ModalIntegracao({
       if (initialData) {
         setFormData(initialData);
       } else {
-        // MODO NOVA INTEGRAÇÃO:
-        // Limpa tudo, inclusive a senha. O usuário deve clicar em Gerar.
         setFormData({
           descricao: "",
           cnpj: "",
@@ -74,9 +96,8 @@ export default function ModalIntegracao({
   };
 
   const handleCopyPassword = () => {
-    if (!formData.senhaGerada) return; // Não copia se estiver vazio
+    if (!formData.senhaGerada) return;
     navigator.clipboard.writeText(formData.senhaGerada);
-    // Aqui você pode colocar um toast ou alerta visual melhor
     alert("Senha copiada para a área de transferência!");
   };
 
@@ -94,7 +115,6 @@ export default function ModalIntegracao({
   return (
     <div className={styles.overlay}>
       <div className={styles.container}>
-        {/* Header com X Limpo */}
         <div className={styles.header}>
           <h2 className={styles.title}>
             {initialData ? "EDITAR INTEGRAÇÃO" : "NOVA INTEGRAÇÃO"}
@@ -156,13 +176,11 @@ export default function ModalIntegracao({
                 <input
                   name="senhaGerada"
                   type="text"
-                  placeholder="Senha" // Placeholder visível quando vazio
+                  placeholder="Senha"
                   value={formData.senhaGerada}
                   readOnly
                   style={{ backgroundColor: "#f9f9f9", cursor: "default" }}
                 />
-
-                {/* Ícone de copiar só aparece se tiver senha */}
                 {formData.senhaGerada && (
                   <button
                     type="button"

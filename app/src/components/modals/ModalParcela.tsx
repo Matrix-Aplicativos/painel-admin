@@ -211,6 +211,7 @@ export default function ModalParcela({
               <option value="Ativação">Ativação</option>
               <option value="Manutenção">Manutenção</option>
               <option value="Serviço">Serviço</option>
+              <option value="Serviço">Outros</option>
             </select>
           </div>
 

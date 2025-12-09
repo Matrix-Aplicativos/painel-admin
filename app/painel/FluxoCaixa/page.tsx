@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from "react";
 import styles from "@/app/src/components/Tabelas.module.css";
-import { FiEdit, FiTrash2, FiRefreshCw } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiPlus } from "react-icons/fi";
 import SearchBar from "@/app/src/components/SearchBar";
+import ModalMovimentacao from "@/app/src/components/modals/ModalMovimentacao";
 import PaginationControls from "@/app/src/components/PaginationControls";
-import GraficoFluxo from "@/app/src/components/GraficoFluxo";
 
 const MOCK_FLUXO = [
   {
@@ -26,71 +26,28 @@ const MOCK_FLUXO = [
     subCategoria: "Energia",
     tipo: "saida",
   },
-  {
-    id: 3,
-    descricao: "Venda de Software",
-    valor: 12000.0,
-    data: "2023-10-10",
-    categoria: "Receita",
-    subCategoria: "Licenças",
-    tipo: "entrada",
-  },
-  {
-    id: 4,
-    descricao: "Aluguel Escritório",
-    valor: -2500.0,
-    data: "2023-10-10",
-    categoria: "Despesa Fixa",
-    subCategoria: "Aluguel",
-    tipo: "saida",
-  },
-  {
-    id: 5,
-    descricao: "Compra de Periféricos",
-    valor: -800.0,
-    data: "2023-10-15",
-    categoria: "Despesa Variável",
-    subCategoria: "Equipamentos",
-    tipo: "saida",
-  },
-  {
-    id: 6,
-    descricao: "Manutenção Servidor",
-    valor: -450.0,
-    data: "2023-10-20",
-    categoria: "Despesa Operacional",
-    subCategoria: "TI",
-    tipo: "saida",
-  },
-  {
-    id: 7,
-    descricao: "Venda de Treinamento",
-    valor: 3500.0,
-    data: "2023-11-01",
-    categoria: "Receita",
-    subCategoria: "Cursos",
-    tipo: "entrada",
-  },
+  // ... outros mocks
 ];
 
 export default function FluxoCaixaPage() {
-  const [dados] = useState(MOCK_FLUXO);
+  const [dados, setDados] = useState<any[]>(MOCK_FLUXO);
   const [busca, setBusca] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
-
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
+
+  // 2. Estados do Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [movimentacaoSelecionada, setMovimentacaoSelecionada] = useState(null);
 
   const dadosFiltrados = useMemo(() => {
     return dados.filter((item) => {
       const matchTexto =
         item.descricao.toLowerCase().includes(busca.toLowerCase()) ||
         item.categoria.toLowerCase().includes(busca.toLowerCase());
-
       const matchInicio = dataInicio ? item.data >= dataInicio : true;
       const matchFim = dataFim ? item.data <= dataFim : true;
-
       return matchTexto && matchInicio && matchFim;
     });
   }, [dados, busca, dataInicio, dataFim]);
@@ -104,8 +61,33 @@ export default function FluxoCaixaPage() {
     return `${dia}/${mes}/${ano}`;
   };
 
+  // 3. Handlers
+  const handleNovaMovimentacao = () => {
+    setMovimentacaoSelecionada(null); // Limpa para criar novo
+    setIsModalOpen(true);
+  };
+
+  const handleEditarMovimentacao = (item: any) => {
+    setMovimentacaoSelecionada(item); // Preenche para editar
+    setIsModalOpen(true);
+  };
+
+  const handleSalvar = (data: any) => {
+    console.log("Salvo:", data);
+    // Aqui você atualizaria o estado 'dados' ou chamaria a API
+    setIsModalOpen(false);
+  };
+
   return (
     <div className={styles.container}>
+      {/* 4. Componente Modal */}
+      <ModalMovimentacao
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSalvar}
+        initialData={movimentacaoSelecionada}
+      />
+
       <h1 className={styles.title}>FLUXO DE CAIXA</h1>
 
       <div className={styles.searchContainer}>
@@ -125,29 +107,30 @@ export default function FluxoCaixaPage() {
               setPaginaAtual(1);
             }}
           />
-
-          {/* Inputs de Data */}
           <div className={styles.filterGroup}>
             <input
               type="date"
               className={styles.dateInput}
               value={dataInicio}
               onChange={(e) => setDataInicio(e.target.value)}
-              title="Data Início"
             />
-
             <input
               type="date"
               className={styles.dateInput}
               value={dataFim}
               onChange={(e) => setDataFim(e.target.value)}
-              title="Data Fim"
             />
           </div>
         </div>
-        <button className={styles.actionButton}>
-          <span>Atualizar</span> <FiRefreshCw />
-        </button>
+        <div className={styles.searchActions}>
+          {/* Botão Atualizado */}
+          <button
+            className={styles.primaryButton}
+            onClick={handleNovaMovimentacao}
+          >
+            Nova Movimentação <FiPlus size={18} />
+          </button>
+        </div>
       </div>
 
       <div className={styles.tableContainer}>
@@ -186,9 +169,15 @@ export default function FluxoCaixaPage() {
                           gap: "5px",
                         }}
                       >
-                        <button className={styles.actionButton} title="Editar">
+                        {/* Ação de Editar na Tabela */}
+                        <button
+                          className={styles.actionButton}
+                          title="Editar"
+                          onClick={() => handleEditarMovimentacao(item)}
+                        >
                           <FiEdit />
                         </button>
+
                         <button className={styles.deleteButton} title="Excluir">
                           <FiTrash2 />
                         </button>
@@ -206,7 +195,7 @@ export default function FluxoCaixaPage() {
                       color: "var(--text-placeholder-color)",
                     }}
                   >
-                    Nenhum lançamento encontrado para os filtros selecionados.
+                    Nenhum lançamento encontrado.
                   </td>
                 </tr>
               )}

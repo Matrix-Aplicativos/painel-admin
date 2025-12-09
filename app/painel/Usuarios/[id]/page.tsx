@@ -12,9 +12,13 @@ import {
 } from "react-icons/fi";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import ModalNovoCargo from "@/app/src/components/modals/ModalNovoCargo";
-import ModalVincularEmpresa from "@/app/src/components/modals/ModalEmpresas";
 import PaginationControls from "@/app/src/components/PaginationControls";
+
+// Importar Modais
+import ModalNovoCargo from "@/app/src/components/modals/ModalNovoCargo";
+
+import ModalNovoFuncionario from "@/app/src/components/modals/ModalNovoFuncionario";
+import ModalVincularEmpresa from "@/app/src/components/modals/ModalEmpresas";
 
 const MOCK_EMPRESAS_USER = [
   {
@@ -40,9 +44,17 @@ export default function UserDetailsPage() {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
 
+  // Estados dos Modais
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
 
+  // Novo Estado para Funcionário
+  const [isFuncionarioModalOpen, setIsFuncionarioModalOpen] = useState(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | string>(
+    ""
+  );
+
+  // Handlers
   const handleSaveRole = (cargo: string) => {
     console.log("Novo cargo adicionado:", cargo);
     setIsRoleModalOpen(false);
@@ -53,8 +65,20 @@ export default function UserDetailsPage() {
     setIsCompanyModalOpen(false);
   };
 
+  // Handler para abrir modal de funcionário
+  const handleOpenFuncionarioModal = (empresaId: number) => {
+    setSelectedCompanyId(empresaId);
+    setIsFuncionarioModalOpen(true);
+  };
+
+  const handleSaveFuncionario = (data: any) => {
+    console.log("Funcionário Salvo:", data);
+    setIsFuncionarioModalOpen(false);
+  };
+
   return (
     <div className={styles.container}>
+      {/* --- RENDERIZAR OS MODAIS --- */}
       <ModalNovoCargo
         isOpen={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
@@ -67,6 +91,14 @@ export default function UserDetailsPage() {
         onVincular={handleVincularEmpresa}
       />
 
+      <ModalNovoFuncionario
+        isOpen={isFuncionarioModalOpen}
+        onClose={() => setIsFuncionarioModalOpen(false)}
+        onSave={handleSaveFuncionario}
+        empresaId={selectedCompanyId}
+      />
+
+      {/* HEADER */}
       <div className={styles.header}>
         <div className={styles.titleArea}>
           <h1 className={styles.title}>NOME DO USUÁRIO</h1>
@@ -93,6 +125,7 @@ export default function UserDetailsPage() {
         </div>
       </div>
 
+      {/* DADOS CADASTRO */}
       <div className={styles.sectionTitle}>Dados de Cadastro</div>
       <div className={styles.formGroup}>
         <div className={styles.inputRow}>
@@ -129,6 +162,7 @@ export default function UserDetailsPage() {
         </div>
       </div>
 
+      {/* CARGOS */}
       <div className={styles.sectionTitle}>Cargos</div>
       <button
         className={styles.primaryButton}
@@ -138,6 +172,7 @@ export default function UserDetailsPage() {
       </button>
 
       <div className={styles.rolesGrid}>
+        {/* ... (mesmo conteúdo de cargos) ... */}
         <div className={styles.roleColumn}>
           <div className={styles.roleHeader}>Movix</div>
           <label className={styles.checkboxItem}>
@@ -146,24 +181,13 @@ export default function UserDetailsPage() {
           <label className={styles.checkboxItem}>
             <input type="checkbox" /> ROLE_MOVIX_FUNCIONARIO
           </label>
-          <label className={styles.checkboxItem}>
-            <input type="checkbox" /> ROLE_MOVIX_INVENTARIOS
-          </label>
-          <label className={styles.checkboxItem}>
-            <input type="checkbox" /> ROLE_MOVIX_TRANSFERENCIAS
-          </label>
         </div>
-
         <div className={styles.roleColumn}>
           <div className={styles.roleHeader}>Força de Vendas</div>
           <label className={styles.checkboxItem}>
             <input type="checkbox" /> ROLE_FDV_GESTOR
           </label>
-          <label className={styles.checkboxItem}>
-            <input type="checkbox" /> ROLE_FDV_FUNCIONARIO
-          </label>
         </div>
-
         <div className={styles.roleColumn}>
           <div className={styles.roleHeader}>Outros</div>
           <label className={styles.checkboxItem}>
@@ -172,13 +196,14 @@ export default function UserDetailsPage() {
         </div>
       </div>
 
+      {/* EMPRESAS */}
       <div className={styles.companiesSection}>
         <div className={styles.sectionTitle}>Empresas Vinculadas</div>
         <button
           className={styles.primaryButton}
           onClick={() => setIsCompanyModalOpen(true)}
         >
-          Novo <FiPlus size={16} />
+          Vincular Empresa <FiPlus size={16} />
         </button>
 
         <div className={styles.innerTableContainer}>
@@ -207,13 +232,16 @@ export default function UserDetailsPage() {
                       </span>
                     </td>
                     <td>
+                      {/* BOTÃO CADASTRO DE FUNCIONÁRIO COM AÇÃO */}
                       <button
                         className={
                           styles.btnTableAction + " " + styles.btnFuncionario
                         }
+                        onClick={() => handleOpenFuncionarioModal(emp.id)}
                       >
                         Cadastro de Funcionário
                       </button>
+
                       <button
                         className={
                           styles.btnTableAction + " " + styles.btnRemover

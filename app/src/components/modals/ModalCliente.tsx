@@ -12,7 +12,8 @@ interface ClienteData {
   cep: string;
   cidade: string;
   endereco: string;
-  bairro: string;
+  complemento: string; // Mudou de bairro para complemento
+  descricaoIntegracao: string; // Novo campo
   situacao: string;
 }
 
@@ -37,7 +38,8 @@ export default function ModalCliente({
     cep: "",
     cidade: "",
     endereco: "",
-    bairro: "",
+    complemento: "",
+    descricaoIntegracao: "",
     situacao: "Ativo",
   });
 
@@ -61,7 +63,6 @@ export default function ModalCliente({
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFormData(initialData);
       } else {
         setFormData({
@@ -70,7 +71,8 @@ export default function ModalCliente({
           cep: "",
           cidade: "",
           endereco: "",
-          bairro: "",
+          complemento: "",
+          descricaoIntegracao: "",
           situacao: "Ativo",
         });
       }
@@ -126,6 +128,7 @@ export default function ModalCliente({
           </div>
 
           <form className={styles.form} onSubmit={handleSubmit}>
+            {/* Linha 1 */}
             <div className={styles.formRow}>
               <div className={styles.inputGroup}>
                 <label>Razão Social</label>
@@ -151,6 +154,7 @@ export default function ModalCliente({
               </div>
             </div>
 
+            {/* Linha 2 */}
             <div className={styles.formRow}>
               <div className={styles.inputGroup} style={{ flex: 0.4 }}>
                 <label>CEP</label>
@@ -179,6 +183,7 @@ export default function ModalCliente({
               </div>
             </div>
 
+            {/* Linha 3: Endereço e Complemento */}
             <div className={styles.formRow}>
               <div className={styles.inputGroup}>
                 <label>Endereço</label>
@@ -191,19 +196,30 @@ export default function ModalCliente({
                 />
               </div>
               <div className={styles.inputGroup}>
-                <label>Bairro</label>
+                <label>Complemento</label>
                 <input
-                  name="bairro"
+                  name="complemento"
                   type="text"
-                  placeholder="Bairro"
-                  value={formData.bairro}
+                  placeholder="Apto, Bloco, Sala..."
+                  value={formData.complemento}
                   onChange={handleChange}
                 />
               </div>
             </div>
 
+            {/* Linha 4: Descrição Integração e Situação */}
             <div className={styles.formRow}>
-              <div className={styles.inputGroup}>
+              <div className={styles.inputGroup} style={{ flex: 2 }}>
+                <label>Descrição da Integração</label>
+                <input
+                  name="descricaoIntegracao"
+                  type="text"
+                  placeholder="Ex: Integração ERP Protheus"
+                  value={formData.descricaoIntegracao}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className={styles.inputGroup} style={{ flex: 1 }}>
                 <label>Situação</label>
                 <select
                   name="situacao"
@@ -216,6 +232,7 @@ export default function ModalCliente({
               </div>
             </div>
 
+            {/* Footer */}
             <div className={styles.footer}>
               <button
                 type="button"
