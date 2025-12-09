@@ -1,48 +1,58 @@
 "use client";
 
 import styles from "./DetalhesEmpresa.module.css";
-import tableStyles from "../../../../src/components/Tabelas.module.css";
-import {
-  FiEdit2,
-  FiTrash2,
-  FiCheck,
-  FiX,
-  FiSearch,
-  FiPlus,
-} from "react-icons/fi";
-import { useParams } from "next/navigation";
+import tableStyles from "@/app/src/components/Tabelas.module.css";
+import { FiEdit2, FiTrash2, FiCheck, FiX, FiSearch } from "react-icons/fi";
 import { useState } from "react";
 import PaginationControls from "@/app/src/components/PaginationControls";
+import ModalEditConfig from "@/app/src/components/modals/ModalEditConfig";
 
 const MOCK_CONFIGS = [
-  { id: 1, cod: 1, descricao: "descricao-da-config", valor: "S", status: true },
-  {
-    id: 2,
-    cod: 2,
-    descricao: "descricao-da-config-2",
-    valor: "123",
-    status: true,
-  },
+  { id: 1, cod: 1, descricao: "Permite Desconto", valor: "S", status: true },
+  { id: 2, cod: 2, descricao: "Limite Crédito", valor: "1000", status: true },
   {
     id: 3,
     cod: 3,
-    descricao: "descricao-da-config-3",
-    valor: "Exemplo",
-    status: true,
+    descricao: "Bloqueia Inadimplente",
+    valor: "N",
+    status: false,
   },
 ];
 
 export default function CompanyDetailsPage() {
-  const [configs] = useState(MOCK_CONFIGS);
+  const [configs, setConfigs] = useState(MOCK_CONFIGS);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(10);
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedConfig, setSelectedConfig] = useState<any>(null);
+
+  const handleEditConfig = (config: any) => {
+    setSelectedConfig(config);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveConfig = (newData: any) => {
+    const newConfigs = configs.map((c) => (c.id === newData.id ? newData : c));
+    setConfigs(newConfigs);
+    setIsModalOpen(false);
+  };
+
   return (
     <div className={styles.container}>
+      <ModalEditConfig
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveConfig}
+        data={selectedConfig}
+      />
+
       <div className={styles.header}>
         <div className={styles.titleArea}>
           <h1 className={styles.title}>RAZÃO SOCIAL DA EMPRESA</h1>
-          <span className={styles.statusBadge}>ATIVO</span>
+          <span className={`${styles.statusBadge} ${styles.statusActive}`}>
+            ATIVO
+          </span>
         </div>
 
         <div className={styles.headerButtons}>
@@ -119,44 +129,41 @@ export default function CompanyDetailsPage() {
             <input type="number" defaultValue="10" />
           </div>
           <div className={styles.inputWrapper} style={{ maxWidth: "150px" }}>
-            <label>Máx. Dispositivos Multi</label>
+            <label>Máx. Disp. Multi</label>
             <input type="number" defaultValue="10" />
           </div>
           <div className={styles.inputWrapper} style={{ maxWidth: "150px" }}>
             <label>Validade Licença</label>
             <input type="text" defaultValue="10/10/2025" />
           </div>
+          <div className={styles.inputWrapper} style={{ maxWidth: "150px" }}>
+            <label>Dia Venc. Boleto</label>
+            <input type="number" defaultValue="10" />
+          </div>
         </div>
       </div>
 
       <div className={styles.configSection}>
         <div className={styles.sectionTitle}>Configurações</div>
-
-        <div style={{ marginBottom: "15px" }}>
-          <button className={styles.primaryButton}>
-            Novo <FiPlus size={18} />
-          </button>
-
-          <div className={styles.configFilters}>
-            <div className={styles.inputWrapper} style={{ maxWidth: "150px" }}>
-              <label>Cód. Configuração</label>
-              <input type="text" placeholder="Buscar pelo Código" />
-            </div>
-            <div className={styles.inputWrapper} style={{ maxWidth: "250px" }}>
-              <label>Descrição</label>
-              <input type="text" placeholder="Buscar pela Descrição" />
-            </div>
-            <button className={`${styles.btn} ${styles.btnBlue}`}>
-              Buscar <FiSearch />
-            </button>
+        <div className={styles.configFilters}>
+          <div className={styles.inputWrapper} style={{ maxWidth: "150px" }}>
+            <label>Cód. Config</label>
+            <input type="text" placeholder="Código" />
           </div>
+          <div className={styles.inputWrapper} style={{ maxWidth: "250px" }}>
+            <label>Descrição</label>
+            <input type="text" placeholder="Descrição" />
+          </div>
+          <button className={`${styles.btn} ${styles.btnBlue}`}>
+            Buscar <FiSearch />
+          </button>
         </div>
 
         <div className={styles.innerTableContainer}>
           <table className={tableStyles.table}>
             <thead>
               <tr>
-                <th>Cod. Configuração</th>
+                <th>Cod. Config</th>
                 <th>Descrição</th>
                 <th>Valor</th>
                 <th>Status</th>
@@ -171,15 +178,24 @@ export default function CompanyDetailsPage() {
                   <td>{conf.valor}</td>
                   <td>
                     <span
-                      className={`${tableStyles.statusBadge} ${tableStyles.statusCompleted}`}
+                      className={`${styles.statusBadge} ${
+                        conf.status
+                          ? styles.statusActive
+                          : styles.statusInactive
+                      }`}
                     >
-                      ATIVO
+                      {conf.status ? "ATIVO" : "INATIVO"}
                     </span>
                   </td>
                   <td>
                     <button
                       className={`${styles.btn} ${styles.btnBlue}`}
-                      style={{ padding: "6px 12px", minWidth: "auto" }}
+                      style={{
+                        padding: "4px 12px",
+                        minWidth: "auto",
+                        fontSize: "12px",
+                      }}
+                      onClick={() => handleEditConfig(conf)}
                     >
                       Editar
                     </button>

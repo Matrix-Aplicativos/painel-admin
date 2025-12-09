@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "@/app/src/components/Tabelas.module.css";
-import { FiLink, FiPlus } from "react-icons/fi";
+import { FiLink, FiPlus, FiRefreshCw } from "react-icons/fi";
+import ModalIntegracao from "@/app/src/components/modals/ModalIntegracao";
 import SearchBar from "@/app/src/components/SearchBar";
 import PaginationControls from "@/app/src/components/PaginationControls";
 
@@ -21,20 +22,6 @@ const MOCK = [
     qtd: 1,
     status: true,
   },
-  {
-    id: 3,
-    descricao: "Sistema SAP",
-    cnpj: "44.555.666/0001-22",
-    qtd: 5,
-    status: false,
-  },
-  {
-    id: 4,
-    descricao: "API Bling",
-    cnpj: "11.222.333/0001-44",
-    qtd: 2,
-    status: true,
-  },
 ];
 
 export default function IntegracoesPage() {
@@ -42,13 +29,30 @@ export default function IntegracoesPage() {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
   const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleVerDetalhes = (id: number) => {
     router.push(`/painel/Integracoes/${id}`);
   };
 
+  const handleNovaIntegracao = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleSalvar = (data: any) => {
+    console.log("Salvar Integração:", data);
+    setIsModalOpen(false);
+  };
+
   return (
     <div className={styles.container}>
+      <ModalIntegracao
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSalvar}
+        initialData={null}
+      />
+
       <h1 className={styles.title}>INTEGRAÇÕES</h1>
 
       <div className={styles.searchContainer}>
@@ -57,8 +61,11 @@ export default function IntegracoesPage() {
           onSearch={() => {}}
         />
         <div className={styles.searchActions}>
-          <button className={styles.primaryButton}>
-            <FiPlus size={18} /> Nova Integração
+          <button
+            className={styles.primaryButton}
+            onClick={handleNovaIntegracao}
+          >
+            Nova Integração <FiPlus size={18} />
           </button>
         </div>
       </div>

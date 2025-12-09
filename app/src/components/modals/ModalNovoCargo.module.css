@@ -1,0 +1,207 @@
+/* Overlay Fundo Escuro */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Container Branco */
+.container {
+  background-color: white;
+  width: 100%;
+  max-width: 600px; /* Um pouco mais largo para caber as colunas */
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.2s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* Botão X Limpo */
+.closeButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #999;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.closeButton:hover {
+  color: #ef4444;
+}
+
+/* Formulário */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.inputGroup label {
+  font-size: 13px;
+  font-weight: 400;
+  color: #666;
+}
+
+.inputGroup input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  color: #333;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #fff;
+}
+
+.inputGroup input:focus {
+  border-color: #1769e3;
+}
+
+/* --- ÁREA DE PERMISSÕES --- */
+.permissionsTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #444;
+  margin-top: 10px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.rolesContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Duas colunas iguais */
+  gap: 30px;
+}
+
+.roleColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.roleHeader {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1769e3; /* Destaque leve no título da coluna */
+  margin-bottom: 5px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.checkboxLabel input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1769e3;
+  cursor: pointer;
+}
+
+/* Footer (Botões) */
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+  margin-top: 10px;
+}
+
+.btnCancel {
+  background-color: transparent;
+  border: 1px solid #ccc;
+  color: #666;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.btnCancel:hover {
+  background-color: #f5f5f5;
+}
+
+.btnSave {
+  background-color: #17e381;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 400;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.2s;
+}
+
+.btnSave:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 600px) {
+  .rolesContainer {
+    grid-template-columns: 1fr; /* Uma coluna no mobile */
+  }
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import styles from "../DetalhesUsuario.module.css";
-import tableStyles from "../../../src/components/Tabelas.module.css";
+import tableStyles from "@/app/src/components/Tabelas.module.css";
 import {
   FiEdit2,
   FiTrash2,
@@ -12,8 +12,9 @@ import {
 } from "react-icons/fi";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import ModalNovoCargo from "@/app/src/components/modals/ModalNovoCargo";
+import ModalVincularEmpresa from "@/app/src/components/modals/ModalEmpresas";
 import PaginationControls from "@/app/src/components/PaginationControls";
-
 
 const MOCK_EMPRESAS_USER = [
   {
@@ -30,31 +31,42 @@ const MOCK_EMPRESAS_USER = [
     cidade: "Cuiabá, MT",
     status: true,
   },
-  {
-    id: 3,
-    razao: "Razão Social da Empresa 3",
-    cnpj: "09.346.601/0001-25",
-    cidade: "Cuiabá, MT",
-    status: true,
-  },
-  {
-    id: 4,
-    razao: "Razão Social da Empresa 4",
-    cnpj: "09.346.601/0001-25",
-    cidade: "Cuiabá, MT",
-    status: true,
-  },
 ];
 
 export default function UserDetailsPage() {
   const params = useParams();
   const id = params.id;
-  const [empresas] = useState(MOCK_EMPRESAS_USER);
+  const [empresas, setEmpresas] = useState(MOCK_EMPRESAS_USER);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
 
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
+
+  const handleSaveRole = (cargo: string) => {
+    console.log("Novo cargo adicionado:", cargo);
+    setIsRoleModalOpen(false);
+  };
+
+  const handleVincularEmpresa = (empresa: any) => {
+    setEmpresas([...empresas, { ...empresa, status: true }]);
+    setIsCompanyModalOpen(false);
+  };
+
   return (
     <div className={styles.container}>
+      <ModalNovoCargo
+        isOpen={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+        onSave={handleSaveRole}
+      />
+
+      <ModalVincularEmpresa
+        isOpen={isCompanyModalOpen}
+        onClose={() => setIsCompanyModalOpen(false)}
+        onVincular={handleVincularEmpresa}
+      />
+
       <div className={styles.header}>
         <div className={styles.titleArea}>
           <h1 className={styles.title}>NOME DO USUÁRIO</h1>
@@ -103,13 +115,13 @@ export default function UserDetailsPage() {
           <div className={styles.userActionsRow}>
             <button
               className={`${styles.btn} ${styles.btnBlue}`}
-              style={{ height: "42px", marginTop: "auto" }}
+              style={{ height: "38px" }}
             >
               Alterar Senha <FiRefreshCw />
             </button>
             <button
               className={`${styles.btn} ${styles.btnRed}`}
-              style={{ height: "42px", marginTop: "auto" }}
+              style={{ height: "38px" }}
             >
               Desativar <FiAlertCircle />
             </button>
@@ -118,8 +130,11 @@ export default function UserDetailsPage() {
       </div>
 
       <div className={styles.sectionTitle}>Cargos</div>
-      <button className={styles.primaryButton}>
-        Novo <FiPlus size={18} />
+      <button
+        className={styles.primaryButton}
+        onClick={() => setIsRoleModalOpen(true)}
+      >
+        Novo <FiPlus size={16} />
       </button>
 
       <div className={styles.rolesGrid}>
@@ -158,9 +173,12 @@ export default function UserDetailsPage() {
       </div>
 
       <div className={styles.companiesSection}>
-        <div className={styles.sectionTitle}>Empresas</div>
-        <button className={styles.primaryButton}>
-          Novo <FiPlus size={18} />
+        <div className={styles.sectionTitle}>Empresas Vinculadas</div>
+        <button
+          className={styles.primaryButton}
+          onClick={() => setIsCompanyModalOpen(true)}
+        >
+          Novo <FiPlus size={16} />
         </button>
 
         <div className={styles.innerTableContainer}>

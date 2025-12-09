@@ -3,19 +3,19 @@
   padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px; 
   height: auto;
   min-height: 100%;
   overflow: visible;
-  padding-bottom: 370px;
+  padding-bottom: 200px;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  margin-bottom: 5px;
 }
-
 .titleArea {
   display: flex;
   align-items: center;
@@ -26,29 +26,37 @@
   font-weight: bold;
   color: #333;
   text-transform: uppercase;
+  margin: 0;
 }
+
 .statusBadge {
-  background-color: #dcfce7;
-  color: #166534;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: bold;
   text-transform: uppercase;
 }
+.statusActive {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+.statusInactive {
+  background-color: #ffebee;
+  color: #d7072c; 
+}
 
 .headerButtons {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .buttonRow {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .btn {
-  padding: 8px 16px;
+  padding: 6px 16px; 
   border-radius: 4px;
   font-weight: 400;
   font-size: 13px;
@@ -60,7 +68,7 @@
   gap: 6px;
   color: white;
   white-space: nowrap;
-  min-width: 100px;
+  min-width: 90px;
   transition: opacity 0.2s;
 }
 .btn:hover {
@@ -77,53 +85,40 @@
   color: black;
 }
 
-.primaryButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background-color: #17e381;
-  border: 1px solid #17e381;
-  border-radius: 6px;
-  cursor: pointer;
-  color: black;
-  font-weight: 400;
-  transition: all 0.2s;
-  margin-bottom: 10px;
-}
-
 .sectionTitle {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: bold;
   color: #444;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
   margin-top: 10px;
+  padding-bottom: 4px;
 }
 
 .formGroup {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  max-width: 800px;
+  gap: 10px;
+  max-width: 900px;
 } 
 .inputRow {
   display: flex;
-  gap: 20px;
+  gap: 15px;
   flex-wrap: wrap;
 }
 .inputWrapper {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  min-width: 200px;
+  gap: 4px;
+  min-width: 150px;
 }
 .inputWrapper label {
-  font-size: 13px;
+  font-size: 12px;
   color: #888;
+  font-weight: 600;
 }
 .inputWrapper input {
-  padding: 10px;
+  padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 14px;
@@ -136,8 +131,8 @@
 
 .togglesRow {
   display: flex;
-  gap: 40px;
-  margin-top: 10px;
+  gap: 30px;
+  margin-top: 5px;
   align-items: center;
 }
 .toggleContainer {
@@ -153,8 +148,8 @@
 .switch {
   position: relative;
   display: inline-block;
-  width: 40px;
-  height: 20px;
+  width: 36px;
+  height: 18px;
 }
 .switch input {
   opacity: 0;
@@ -175,8 +170,8 @@
 .slider:before {
   position: absolute;
   content: "";
-  height: 16px;
-  width: 16px;
+  height: 14px;
+  width: 14px;
   left: 2px;
   bottom: 2px;
   background-color: white;
@@ -187,23 +182,22 @@ input:checked + .slider {
   background-color: #1769e3;
 }
 input:checked + .slider:before {
-  transform: translateX(20px);
+  transform: translateX(18px);
 }
-
 
 .configSection {
-  margin-top: 10px;
-}
+  margin-top: 5px;
+} 
 
 .configFilters {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 .configFilters .btn {
-  height: 38px;
-}
+  height: 35px;
+} 
 
 .innerTableContainer {
   width: 100%;

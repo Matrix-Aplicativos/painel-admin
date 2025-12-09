@@ -1,8 +1,10 @@
 "use client";
+
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // Importar useRouter
+import { useRouter } from "next/navigation";
 import styles from "@/app/src/components/Tabelas.module.css";
-import { FiPlus, FiRefreshCw } from "react-icons/fi";
+import { FiPlus } from "react-icons/fi";
+import ModalCliente from "@/app/src/components/modals/ModalCliente";
 import SearchBar from "@/app/src/components/SearchBar";
 import PaginationControls from "@/app/src/components/PaginationControls";
 
@@ -34,15 +36,31 @@ export default function ClientesPage() {
   const [dados] = useState(MOCK);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
-  const router = useRouter(); // Hook de navegação
+  const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleVerDetalhes = (id: number) => {
-    // Redireciona para a página de detalhes
     router.push(`/painel/Clientes/${id}`);
+  };
+
+  const handleNovoCliente = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleSalvarCliente = (novoCliente: any) => {
+    console.log("Salvando novo cliente:", novoCliente);
+    setIsModalOpen(false); 
   };
 
   return (
     <div className={styles.container}>
+      <ModalCliente
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSalvarCliente}
+        initialData={null} 
+      />
+
       <h1 className={styles.title}>CLIENTES</h1>
 
       <div className={styles.searchContainer}>
@@ -51,8 +69,8 @@ export default function ClientesPage() {
           onSearch={() => {}}
         />
         <div className={styles.searchActions}>
-          <button className={styles.primaryButton}>
-            <FiPlus size={18} /> Novo Cliente
+          <button className={styles.primaryButton} onClick={handleNovoCliente}>
+            Novo Cliente <FiPlus size={18} />
           </button>
         </div>
       </div>

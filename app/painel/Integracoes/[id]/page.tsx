@@ -13,6 +13,7 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import PaginationControls from "@/app/src/components/PaginationControls";
+import ModalNovaEmpresa from "@/app/src/components/modals/ModalNovaEmpresa";
 
 const MOCK_EMPRESAS = [
   {
@@ -54,15 +55,30 @@ export default function IntegrationDetailsPage() {
   const router = useRouter();
   const id = params.id;
   const [empresas] = useState(MOCK_EMPRESAS);
-
+  const [isNewCompanyModalOpen, setIsNewCompanyModalOpen] = useState(false);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
 
   const handleVerDetalhesEmpresa = (empresaId: number) => {
     router.push(`/painel/Integracoes/${id}/Empresa`);
   };
+
+  const handleNovaEmpresa = () => {
+    setIsNewCompanyModalOpen(true);
+  };
+
+  const handleSalvarEmpresa = (data: any) => {
+    console.log("Nova empresa:", data);
+    setIsNewCompanyModalOpen(false);
+  };
+
   return (
     <div className={styles.container}>
+      <ModalNovaEmpresa
+        isOpen={isNewCompanyModalOpen}
+        onClose={() => setIsNewCompanyModalOpen(false)}
+        onSave={handleSalvarEmpresa}
+      />
       <div className={styles.header}>
         <h1 className={styles.title}>DESCRIÇÃO DA INTEGRAÇÃO</h1>
         <span className={styles.statusBadge}>ATIVO</span>
@@ -160,7 +176,7 @@ export default function IntegrationDetailsPage() {
           >
             Buscar <FiSearch />
           </button>
-          <button className={styles.primaryButton}>
+          <button className={styles.primaryButton} onClick={handleNovaEmpresa}>
             Novo <FiPlus size={18} />
           </button>
         </div>

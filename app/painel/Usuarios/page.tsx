@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 import styles from "@/app/src/components/Tabelas.module.css";
 import { FiPlus } from "react-icons/fi";
 import SearchBar from "@/app/src/components/SearchBar";
@@ -9,8 +9,6 @@ import PaginationControls from "@/app/src/components/PaginationControls";
 const MOCK = [
   { id: 1, nome: "Admin Master", login: "admin@movix.com", status: true },
   { id: 2, nome: "Roberto Silva", login: "roberto.silva", status: true },
-  { id: 3, nome: "Ana Paula", login: "ana.paula", status: true },
-  { id: 4, nome: "Carlos Souza", login: "carlos.souza", status: false },
 ];
 
 export default function UsuariosPage() {
@@ -19,9 +17,12 @@ export default function UsuariosPage() {
   const [porPagina, setPorPagina] = useState(20);
   const router = useRouter();
 
-  // Função de navegação
   const handleVerDetalhes = (id: number) => {
     router.push(`/painel/Usuarios/${id}`);
+  };
+
+  const handleNovoUsuario = () => {
+    router.push("/painel/Usuarios/NovoUsuario");
   };
 
   return (
@@ -31,8 +32,8 @@ export default function UsuariosPage() {
       <div className={styles.searchContainer}>
         <SearchBar placeholder="Buscar por Nome ou Login" onSearch={() => {}} />
         <div className={styles.searchActions}>
-          <button className={styles.primaryButton}>
-            <FiPlus size={18} /> Novo Usuário
+          <button className={styles.primaryButton} onClick={handleNovoUsuario}>
+            Novo Usuário <FiPlus size={18} />
           </button>
         </div>
       </div>
@@ -66,7 +67,6 @@ export default function UsuariosPage() {
                   </td>
                   <td className={styles.actionsCell}>
                     <div style={{ display: "flex", justifyContent: "center" }}>
-                      {/* Botão Ver Detalhes */}
                       <button
                         className={styles.btnDetails}
                         onClick={() => handleVerDetalhes(user.id)}
