@@ -3,22 +3,15 @@
 import { useState } from "react";
 import styles from "./ModalMunicipio.module.css";
 import { FiX, FiSearch } from "react-icons/fi";
-import PaginationControls from "../PaginationControls"; // Reutilizando a paginação global
-
-// Mock de Municípios
-const MOCK_MUNICIPIOS = [
-  { id: 1, nome: "Cuiabá", uf: "MT" },
-  { id: 2, nome: "Várzea Grande", uf: "MT" },
-  { id: 3, nome: "Rondonópolis", uf: "MT" },
-  { id: 4, nome: "Sinop", uf: "MT" },
-  { id: 5, nome: "São Paulo", uf: "SP" },
-  { id: 6, nome: "Rio de Janeiro", uf: "RJ" },
-];
+import PaginationControls from "../PaginationControls";
+import useGetMunicipio, {
+  MunicipioItem,
+} from "../../hooks/Municipio/useGetMunicipio";
 
 interface ModalMunicipioProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (cidade: string) => void; // Retorna a cidade selecionada
+  onSelect: (cidade: MunicipioItem) => void;
 }
 
 export default function ModalMunicipio({
@@ -29,28 +22,61 @@ export default function ModalMunicipio({
   const [busca, setBusca] = useState("");
   const [uf, setUf] = useState("");
 
-  // Paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const [porPagina, setPorPagina] = useState(5);
+  const [porPagina, setPorPagina] = useState(20);
+
+  const { municipios, pagination, loading, refetch } = useGetMunicipio({
+    pagina: paginaAtual,
+    porPagina: porPagina,
+    nome: busca,
+    uf: uf,
+  });
 
   if (!isOpen) return null;
 
-  // Filtro Local
-  const dadosFiltrados = MOCK_MUNICIPIOS.filter(
-    (m) =>
-      m.nome.toLowerCase().includes(busca.toLowerCase()) &&
-      (uf ? m.uf === uf : true)
-  );
+  const handleBuscar = () => {
+    setPaginaAtual(1);
+    refetch();
+  };
 
-  const handleSelecionar = (cidade: string, estado: string) => {
-    onSelect(`${cidade} - ${estado}`);
+  const handleSelecionar = (item: MunicipioItem) => {
+    onSelect(item);
     onClose();
   };
+
+  const UFS = [
+    "AC",
+    "AL",
+    "AP",
+    "AM",
+    "BA",
+    "CE",
+    "DF",
+    "ES",
+    "GO",
+    "MA",
+    "MT",
+    "MS",
+    "MG",
+    "PA",
+    "PB",
+    "PR",
+    "PE",
+    "PI",
+    "RJ",
+    "RN",
+    "RS",
+    "RO",
+    "RR",
+    "SC",
+    "SP",
+    "SE",
+    "TO",
+  ];
 
   return (
     <div className={styles.overlay}>
       <div className={styles.container}>
-        {/* Header */}
         <div className={styles.header}>
           <h2 className={styles.title}>SELECIONAR MUNICÍPIO</h2>
           <button className={styles.closeButton} onClick={onClose}>
@@ -58,7 +84,6 @@ export default function ModalMunicipio({
           </button>
         </div>
 
-        {/* Filtros */}
         <div className={styles.filtersRow}>
           <div className={styles.inputGroup} style={{ flex: 2 }}>
             <label>Nome</label>
@@ -67,63 +92,108 @@ export default function ModalMunicipio({
               placeholder="Nome da Cidade"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
             />
           </div>
           <div className={styles.inputGroup} style={{ flex: 1 }}>
             <label>UF</label>
             <select value={uf} onChange={(e) => setUf(e.target.value)}>
               <option value="">Todas</option>
-              <option value="MT">MT</option>
-              <option value="SP">SP</option>
-              <option value="RJ">RJ</option>
+              {UFS.map((estado) => (
+                <option key={estado} value={estado}>
+                  {estado}
+                </option>
+              ))}
             </select>
           </div>
-          <button className={styles.btnSearch}>
+          <button className={styles.btnSearch} onClick={handleBuscar}>
             Buscar <FiSearch />
           </button>
         </div>
-
-        {/* Tabela */}
-        <div className={styles.tableContainer}>
+        <div
+          className={styles.tableContainer}
+          style={{
+            maxHeight: "60vh", 
+            overflowY: "auto",
+            marginTop: "10px",
+            borderBottom: "1px solid #eee",
+          }}
+        >
           <table className={styles.table}>
-            <thead>
+            <thead
+              style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 1,
+                backgroundColor: "#fff",
+              }}
+            >
               <tr>
+                <th>Cód. IBGE</th>
                 <th>Nome</th>
                 <th>UF</th>
                 <th style={{ width: "120px", textAlign: "center" }}>Ação</th>
               </tr>
             </thead>
             <tbody>
-              {dadosFiltrados.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.nome}</td>
-                  <td>{item.uf}</td>
-                  <td style={{ textAlign: "center" }}>
-                    <button
-                      className={styles.btnSelect}
-                      onClick={() => handleSelecionar(item.nome, item.uf)}
-                    >
-                      Selecionar
-                    </button>
+              {loading && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    style={{ textAlign: "center", padding: "20px" }}
+                  >
+                    Carregando municípios...
                   </td>
                 </tr>
-              ))}
+              )}
+
+              {!loading && municipios.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    style={{ textAlign: "center", padding: "20px" }}
+                  >
+                    Nenhum município encontrado.
+                  </td>
+                </tr>
+              )}
+
+              {!loading &&
+                municipios.map((item) => (
+                  <tr key={item.codMunicipioIbge}>
+                    <td>{item.codMunicipioIbge}</td>
+                    <td>{item.nome}</td>
+                    <td>{item.uf}</td>
+                    <td style={{ textAlign: "center" }}>
+                      <button
+                        className={styles.btnSelect}
+                        onClick={() => handleSelecionar(item)}
+                      >
+                        Selecionar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
 
-        {/* Paginação */}
-        <div style={{ marginTop: "auto" }}>
-          <PaginationControls
-            paginaAtual={paginaAtual}
-            totalPaginas={1}
-            totalElementos={dadosFiltrados.length}
-            porPagina={porPagina}
-            onPageChange={setPaginaAtual}
-            onItemsPerPageChange={setPorPagina}
-            itemsPerPageOptions={[5, 10]}
-          />
-        </div>
+        {pagination && (
+          <div style={{ marginTop: "15px", flexShrink: 0 }}>
+            <PaginationControls
+              paginaAtual={pagination.paginaAtual}
+              totalPaginas={pagination.qtdPaginas}
+              totalElementos={pagination.qtdElementos}
+              porPagina={porPagina}
+              onPageChange={setPaginaAtual}
+              onItemsPerPageChange={(val) => {
+                setPorPagina(val);
+                setPaginaAtual(1);
+              }}
+              itemsPerPageOptions={[20, 50, 100]}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

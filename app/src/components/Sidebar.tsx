@@ -11,8 +11,7 @@ import {
   FiCalendar,
   FiMenu,
   FiLogOut,
-  FiSun,
-  FiMoon,
+  FiSmartphone, // Importei o ícone novo
 } from "react-icons/fi";
 
 interface SidebarProps {
@@ -81,16 +80,12 @@ export default function Sidebar({
           </Link>
         </li>
 
-        <li style={{ marginTop: "auto" }}></li>
+        {/* NOVO ITEM ADICIONADO AQUI */}
         <li>
-          <button className="menu-item" onClick={toggleTheme}>
-            {isDarkMode ? <FiSun size={24} /> : <FiMoon size={24} />}
-            {isOpen && (
-              <span className="menu-text">
-                {isDarkMode ? "Modo Claro" : "Modo Escuro"}
-              </span>
-            )}
-          </button>
+          <Link href="/painel/VersaoMovix" className="menu-item">
+            <FiSmartphone size={24} />
+            {isOpen && <span className="menu-text">Versões MOVIX</span>}
+          </Link>
         </li>
       </ul>
 

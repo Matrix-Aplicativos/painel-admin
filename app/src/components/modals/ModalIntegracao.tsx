@@ -3,8 +3,11 @@
 import { useState, useEffect } from "react";
 import styles from "./ModalIntegracao.module.css";
 import { FiX, FiCheck, FiCopy, FiKey } from "react-icons/fi";
+import usePostIntegracao, {
+  IntegracaoPayload,
+} from "../../hooks/Integracao/usePostIntegracao";
 
-interface IntegracaoData {
+interface IntegracaoFormData {
   id?: number;
   descricao: string;
   cnpj: string;
@@ -15,17 +18,19 @@ interface IntegracaoData {
 interface ModalIntegracaoProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: IntegracaoData) => void;
-  initialData?: IntegracaoData | null;
+  onSaveSuccess: () => void;
+  initialData?: IntegracaoFormData | null;
 }
 
 export default function ModalIntegracao({
   isOpen,
   onClose,
-  onSave,
+  onSaveSuccess,
   initialData,
 }: ModalIntegracaoProps) {
-  const [formData, setFormData] = useState<IntegracaoData>({
+  const { createIntegracao, loading, error, success } = usePostIntegracao();
+
+  const [formData, setFormData] = useState<IntegracaoFormData>({
     descricao: "",
     cnpj: "",
     maxEmpresas: 1,
@@ -80,7 +85,7 @@ export default function ModalIntegracao({
           descricao: "",
           cnpj: "",
           maxEmpresas: 1,
-          senhaGerada: "",
+          senhaGerada: generatePassword(), 
         });
       }
     }
@@ -105,9 +110,26 @@ export default function ModalIntegracao({
     setFormData((prev) => ({ ...prev, senhaGerada: generatePassword() }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+
+    const payload: IntegracaoPayload = {
+      codIntegracao: null, 
+      descricao: formData.descricao,
+      cnpj: formData.cnpj,
+      maxEmpresas: Number(formData.maxEmpresas),
+      ativo: true,
+      usuario: {
+        nomeUsuario: formData.cnpj.replace(/\D/g, ""),
+        senha: formData.senhaGerada,
+      },
+    };
+
+    const isCreated = await createIntegracao(payload);
+
+    if (isCreated) {
+      onSaveSuccess(); 
+    }
   };
 
   if (!isOpen) return null;
@@ -123,6 +145,7 @@ export default function ModalIntegracao({
             className={styles.closeButton}
             onClick={onClose}
             title="Fechar"
+            disabled={loading}
           >
             <FiX />
           </button>
@@ -140,6 +163,7 @@ export default function ModalIntegracao({
               value={formData.descricao}
               onChange={handleChange}
               required
+              disabled={loading}
             />
           </div>
 
@@ -153,6 +177,7 @@ export default function ModalIntegracao({
                 value={formData.cnpj}
                 onChange={handleChange}
                 required
+                disabled={loading}
               />
             </div>
             <div className={styles.inputGroup} style={{ flex: 1 }}>
@@ -163,11 +188,19 @@ export default function ModalIntegracao({
                 min="1"
                 value={formData.maxEmpresas}
                 onChange={handleChange}
+                disabled={loading}
               />
             </div>
           </div>
 
           <h3 className={styles.sectionTitle}>Usuário de Integração</h3>
+
+          <div
+            className={styles.infoBox}
+            style={{ fontSize: "12px", color: "#666", marginBottom: "10px" }}
+          >
+            O login do usuário será gerado automaticamente com base no CNPJ.
+          </div>
 
           <div className={styles.formRow}>
             <div className={styles.inputGroup} style={{ flex: 1 }}>
@@ -198,21 +231,36 @@ export default function ModalIntegracao({
               type="button"
               className={styles.generateButton}
               onClick={handleGeneratePassword}
+              disabled={loading}
             >
               Gerar <FiKey />
             </button>
           </div>
+
+          {error && (
+            <div
+              style={{
+                color: "red",
+                marginTop: 10,
+                fontSize: 14,
+                textAlign: "center",
+              }}
+            >
+              {error}
+            </div>
+          )}
 
           <div className={styles.footer}>
             <button
               type="button"
               className={styles.btnCancel}
               onClick={onClose}
+              disabled={loading}
             >
               Cancelar
             </button>
-            <button type="submit" className={styles.btnSave}>
-              Salvar <FiCheck />
+            <button type="submit" className={styles.btnSave} disabled={loading}>
+              {loading ? "Salvando..." : "Salvar"} <FiCheck />
             </button>
           </div>
         </form>

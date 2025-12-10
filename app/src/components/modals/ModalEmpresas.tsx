@@ -1,142 +1,351 @@
 "use client";
 
-import { useState } from "react";
-import styles from "./ModalEmpresas.module.css"; // Copie o CSS do ModalMunicipio
-import { FiX, FiSearch, FiPlus } from "react-icons/fi";
-import PaginationControls from "../PaginationControls";
+import { useState, useEffect } from "react";
+import styles from "./ModalEmpresas.module.css";
+import { FiX, FiSave, FiCheckSquare, FiSquare, FiSearch } from "react-icons/fi";
+import usePostEmpresa, {
+  EmpresaPayload,
+} from "@/app/src/hooks/Empresa/usePostEmpresa";
+import ModalMunicipio from "./ModalMunicipio";
+import { MunicipioItem } from "../../hooks/Municipio/useGetMunicipio";
 
-// Mock Empresas Disponíveis
-const MOCK_EMPRESAS_DISPONIVEIS = [
-  {
-    id: 101,
-    razao: "Empresa Alpha Ltda",
-    cnpj: "00.000.000/0001-01",
-    cidade: "São Paulo - SP",
-  },
-  {
-    id: 102,
-    razao: "Comércio Beta S.A.",
-    cnpj: "11.111.111/0001-01",
-    cidade: "Rio de Janeiro - RJ",
-  },
-  {
-    id: 103,
-    razao: "Loja Gamma",
-    cnpj: "22.222.222/0001-01",
-    cidade: "Cuiabá - MT",
-  },
-  {
-    id: 104,
-    razao: "Indústria Delta",
-    cnpj: "33.333.333/0001-01",
-    cidade: "Curitiba - PR",
-  },
-  {
-    id: 105,
-    razao: "Tech Solutions",
-    cnpj: "44.444.444/0001-01",
-    cidade: "Belo Horizonte - MG",
-  },
-];
-
-interface ModalVincularEmpresaProps {
+interface ModalNovaEmpresaProps {
   isOpen: boolean;
   onClose: () => void;
-  onVincular: (empresa: any) => void;
+  codIntegracao: number;
+  onSuccess: () => void; 
 }
 
-export default function ModalVincularEmpresa({
+const INITIAL_DATA: EmpresaPayload = {
+  codEmpresa: null,
+  codIntegracao: 0,
+  codEmpresaErp: "",
+  cnpj: "",
+  razaoSocial: "",
+  nomeFantasia: "",
+  bairro: "",
+  codMunicipioIbge: "",
+  acessoColeta: false,
+  acessoFv: false,
+  maxDispositivosColeta: 0,
+  maxDispositivosMultiColeta: 0,
+  validadeLicencaColeta: "",
+  maxDispositivosFv: 0,
+  maxDispositivosMultiFv: 0,
+  validadeLicencaFv: "",
+  ativo: true,
+};
+
+export default function ModalNovaEmpresa({
   isOpen,
   onClose,
-  onVincular,
-}: ModalVincularEmpresaProps) {
-  const [busca, setBusca] = useState("");
-  const [paginaAtual, setPaginaAtual] = useState(1);
-  const [porPagina, setPorPagina] = useState(5);
+  codIntegracao,
+  onSuccess,
+}: ModalNovaEmpresaProps) {
+  const { createEmpresa, loading } = usePostEmpresa();
+  const [formData, setFormData] = useState<EmpresaPayload>(INITIAL_DATA);
+  const [activeTab, setActiveTab] = useState<"geral" | "config">("geral");
+  const [isCityModalOpen, setIsCityModalOpen] = useState(false);
+  const [nomeCidadeSelecionada, setNomeCidadeSelecionada] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({ ...INITIAL_DATA, codIntegracao: codIntegracao });
+      setNomeCidadeSelecionada(""); 
+    }
+  }, [isOpen, codIntegracao]);
+
+  const handleChange = (field: keyof EmpresaPayload, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSelectCity = (cidade: MunicipioItem) => {
+    handleChange("codMunicipioIbge", cidade.codMunicipioIbge);
+    setNomeCidadeSelecionada(`${cidade.nome} - ${cidade.uf}`);
+
+    setIsCityModalOpen(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.razaoSocial || !formData.cnpj) {
+      alert("Preencha Razão Social e CNPJ");
+      return;
+    }
+
+    const sucesso = await createEmpresa(formData);
+
+    if (sucesso) {
+      onSuccess();
+      onClose();
+    }
+  };
 
   if (!isOpen) return null;
 
-  // Filtro
-  const dadosFiltrados = MOCK_EMPRESAS_DISPONIVEIS.filter(
-    (e) =>
-      e.razao.toLowerCase().includes(busca.toLowerCase()) ||
-      e.cnpj.includes(busca)
-  );
-
   return (
     <div className={styles.overlay}>
-      <div className={styles.container}>
+
+      <ModalMunicipio
+        isOpen={isCityModalOpen}
+        onClose={() => setIsCityModalOpen(false)}
+        onSelect={handleSelectCity}
+      />
+
+      <div className={styles.container} style={{ maxWidth: "800px" }}>
         <div className={styles.header}>
-          <h2 className={styles.title}>VINCULAR EMPRESA</h2>
+          <h2 className={styles.title}>NOVA EMPRESA</h2>
           <button className={styles.closeButton} onClick={onClose}>
             <FiX />
           </button>
         </div>
 
-        {/* Filtros */}
-        <div className={styles.filtersRow}>
-          <div className={styles.inputGroup} style={{ flex: 2 }}>
-            <label>Buscar</label>
-            <input
-              type="text"
-              placeholder="Razão Social ou CNPJ"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
-          </div>
-          <button className={styles.btnSearch}>
-            Buscar <FiSearch />
+        <div className={styles.tabs}>
+          <button
+            className={`${styles.tabBtn} ${
+              activeTab === "geral" ? styles.active : ""
+            }`}
+            onClick={() => setActiveTab("geral")}
+          >
+            Dados Gerais
+          </button>
+          <button
+            className={`${styles.tabBtn} ${
+              activeTab === "config" ? styles.active : ""
+            }`}
+            onClick={() => setActiveTab("config")}
+          >
+            Configurações e Licenças
           </button>
         </div>
 
-        {/* Tabela */}
-        <div className={styles.tableContainer}>
-          <div className={styles.tableWrapper}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Razão Social</th>
-                  <th>CNPJ</th>
-                  <th>Cidade</th>
-                  <th style={{ textAlign: "center", width: "100px" }}>Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dadosFiltrados.map((emp) => (
-                  <tr key={emp.id}>
-                    <td>{emp.razao}</td>
-                    <td>{emp.cnpj}</td>
-                    <td>{emp.cidade}</td>
-                    <td style={{ textAlign: "center" }}>
-                      <button
-                        className={styles.btnSelect}
-                        onClick={() => {
-                          onVincular(emp);
-                          onClose();
-                        }}
-                      >
-                        Vincular
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <form onSubmit={handleSubmit} className={styles.formContent}>
+          {activeTab === "geral" && (
+            <div className={styles.gridForm}>
+              <div className={styles.inputGroup}>
+                <label>Razão Social *</label>
+                <input
+                  type="text"
+                  value={formData.razaoSocial}
+                  onChange={(e) => handleChange("razaoSocial", e.target.value)}
+                  required
+                />
+              </div>
 
-        {/* Paginação */}
-        <div style={{ marginTop: "0", flexShrink: 0 }}>
-          <PaginationControls
-            paginaAtual={paginaAtual}
-            totalPaginas={1}
-            totalElementos={dadosFiltrados.length}
-            porPagina={porPagina}
-            onPageChange={setPaginaAtual}
-            onItemsPerPageChange={setPorPagina}
-            itemsPerPageOptions={[5, 10]}
-          />
-        </div>
+              <div className={styles.rowTwo}>
+                <div className={styles.inputGroup}>
+                  <label>CNPJ *</label>
+                  <input
+                    type="text"
+                    value={formData.cnpj}
+                    onChange={(e) => handleChange("cnpj", e.target.value)}
+                    required
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label>Fantasia</label>
+                  <input
+                    type="text"
+                    value={formData.nomeFantasia}
+                    onChange={(e) =>
+                      handleChange("nomeFantasia", e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className={styles.rowTwo}>
+                <div className={styles.inputGroup}>
+                  <label>Cód. ERP</label>
+                  <input
+                    type="text"
+                    value={formData.codEmpresaErp}
+                    onChange={(e) =>
+                      handleChange("codEmpresaErp", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className={styles.inputGroup}>
+                  <label>Município (IBGE)</label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <input
+                      type="text"
+                      value={nomeCidadeSelecionada}
+                      placeholder="Selecione a cidade"
+                      readOnly 
+                      style={{ cursor: "pointer", flex: 1 }}
+                      onClick={() => setIsCityModalOpen(true)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setIsCityModalOpen(true)}
+                      style={{
+                        background: "#eee",
+                        border: "1px solid #ccc",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        padding: "0 10px",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <FiSearch />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.inputGroup}>
+                <label>Bairro</label>
+                <input
+                  type="text"
+                  value={formData.bairro}
+                  onChange={(e) => handleChange("bairro", e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {activeTab === "config" && (
+            <div className={styles.gridForm}>
+              <div className={styles.sectionBox}>
+                <div
+                  className={styles.checkTitle}
+                  onClick={() =>
+                    handleChange("acessoColeta", !formData.acessoColeta)
+                  }
+                >
+                  {formData.acessoColeta ? (
+                    <FiCheckSquare color="green" />
+                  ) : (
+                    <FiSquare />
+                  )}
+                  <span>Acesso Coleta</span>
+                </div>
+
+                {formData.acessoColeta && (
+                  <div className={styles.subGrid}>
+                    <div className={styles.inputGroup}>
+                      <label>Max. Disp.</label>
+                      <input
+                        type="number"
+                        value={formData.maxDispositivosColeta}
+                        onChange={(e) =>
+                          handleChange(
+                            "maxDispositivosColeta",
+                            Number(e.target.value)
+                          )
+                        }
+                      />
+                    </div>
+                    <div className={styles.inputGroup}>
+                      <label>Max. Multi</label>
+                      <input
+                        type="number"
+                        value={formData.maxDispositivosMultiColeta}
+                        onChange={(e) =>
+                          handleChange(
+                            "maxDispositivosMultiColeta",
+                            Number(e.target.value)
+                          )
+                        }
+                      />
+                    </div>
+                    <div className={styles.inputGroup}>
+                      <label>Validade Licença</label>
+                      <input
+                        type="date"
+                        value={
+                          formData.validadeLicencaColeta
+                            ? formData.validadeLicencaColeta.split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          handleChange("validadeLicencaColeta", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.sectionBox}>
+                <div
+                  className={styles.checkTitle}
+                  onClick={() => handleChange("acessoFv", !formData.acessoFv)}
+                >
+                  {formData.acessoFv ? (
+                    <FiCheckSquare color="green" />
+                  ) : (
+                    <FiSquare />
+                  )}
+                  <span>Acesso Força de Vendas</span>
+                </div>
+
+                {formData.acessoFv && (
+                  <div className={styles.subGrid}>
+                    <div className={styles.inputGroup}>
+                      <label>Max. Disp.</label>
+                      <input
+                        type="number"
+                        value={formData.maxDispositivosFv}
+                        onChange={(e) =>
+                          handleChange(
+                            "maxDispositivosFv",
+                            Number(e.target.value)
+                          )
+                        }
+                      />
+                    </div>
+                    <div className={styles.inputGroup}>
+                      <label>Max. Multi</label>
+                      <input
+                        type="number"
+                        value={formData.maxDispositivosMultiFv}
+                        onChange={(e) =>
+                          handleChange(
+                            "maxDispositivosMultiFv",
+                            Number(e.target.value)
+                          )
+                        }
+                      />
+                    </div>
+                    <div className={styles.inputGroup}>
+                      <label>Validade Licença</label>
+                      <input
+                        type="date"
+                        value={
+                          formData.validadeLicencaFv
+                            ? formData.validadeLicencaFv.split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          handleChange("validadeLicencaFv", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className={styles.footerActions}>
+            <button
+              type="button"
+              className={styles.btnCancel}
+              onClick={onClose}
+              disabled={loading}
+            >
+              Cancelar
+            </button>
+            <button type="submit" className={styles.btnSave} disabled={loading}>
+              {loading ? "Salvando..." : "Salvar Empresa"} <FiSave />
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
