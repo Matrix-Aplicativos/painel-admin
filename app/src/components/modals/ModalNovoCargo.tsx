@@ -1,29 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import styles from "./ModalNovoCargo.module.css";
 import { FiX, FiCheck } from "react-icons/fi";
+import useGetPermissao, {
+  PermissaoItem,
+} from "@/app/src/hooks/Permissao/useGetPermissao";
 
 interface ModalNovoCargoProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (cargo: { nome: string; permissoes: string[] }) => void;
+  onSave: (cargo: { nome: string; permissoes: number[] }) => void;
 }
-
-// Lista de Permissões Disponíveis (Mock)
-const PERMISSOES_MOVIX = [
-  "ROLE_MOVIX_GESTOR",
-  "ROLE_MOVIX_FUNCIONARIO",
-  "ROLE_MOVIX_INVENTARIOS",
-  "ROLE_MOVIX_TRANSFERENCIAS",
-];
-
-const PERMISSOES_FDV = [
-  "ROLE_FDV_GESTOR",
-  "ROLE_FDV_FUNCIONARIO",
-  "ROLE_FDV_PEDIDOS",
-  "ROLE_FDV_RELATORIOS",
-];
 
 export default function ModalNovoCargo({
   isOpen,
@@ -31,9 +19,19 @@ export default function ModalNovoCargo({
   onSave,
 }: ModalNovoCargoProps) {
   const [nomeCargo, setNomeCargo] = useState("");
+
+  // Guardaremos os IDs das permissões selecionadas
   const [permissoesSelecionadas, setPermissoesSelecionadas] = useState<
-    string[]
+    number[]
   >([]);
+
+  // Hook de Permissões (Busca todas para exibir)
+  const { permissoes, loading } = useGetPermissao({
+    pagina: 1,
+    porPagina: 100, // Traz todas
+    orderBy: "nome",
+    direction: "asc",
+  });
 
   // Limpa o form ao abrir
   useEffect(() => {
@@ -44,30 +42,77 @@ export default function ModalNovoCargo({
     }
   }, [isOpen]);
 
+  const { permsMovix, permsFdv, permsOutros } = useMemo(() => {
+    const movix: PermissaoItem[] = [];
+    const fdv: PermissaoItem[] = [];
+    const outros: PermissaoItem[] = [];
+
+    permissoes.forEach((p) => {
+      const nome = p.nome.toUpperCase();
+      if (nome.includes("MOVIX")) {
+        movix.push(p);
+      } else if (nome.includes("FDV")) {
+        fdv.push(p);
+      } else {
+        outros.push(p);
+      }
+    });
+
+    return { permsMovix: movix, permsFdv: fdv, permsOutros: outros };
+  }, [permissoes]);
+
   if (!isOpen) return null;
 
-  // Lógica para marcar/desmarcar checkbox
-  const handleCheckboxChange = (permissao: string) => {
+  const handleCheckboxChange = (codPermissao: number) => {
     setPermissoesSelecionadas((prev) => {
-      if (prev.includes(permissao)) {
-        // Se já tem, remove
-        return prev.filter((p) => p !== permissao);
+      if (prev.includes(codPermissao)) {
+        return prev.filter((id) => id !== codPermissao);
       } else {
-        // Se não tem, adiciona
-        return [...prev, permissao];
+        return [...prev, codPermissao];
       }
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!nomeCargo) {
+      alert("Preencha o nome do cargo.");
+      return;
+    }
     onSave({ nome: nomeCargo, permissoes: permissoesSelecionadas });
+  };
+
+  const renderPermissaoList = (lista: PermissaoItem[]) => {
+    if (lista.length === 0)
+      return (
+        <p style={{ fontSize: "12px", color: "#ccc", fontStyle: "italic" }}>
+          Nenhuma permissão.
+        </p>
+      );
+
+    return lista.map((perm) => (
+      <label
+        key={perm.codPermissao}
+        className={styles.checkboxLabel}
+        title={perm.descricao}
+      >
+        <input
+          type="checkbox"
+          checked={permissoesSelecionadas.includes(perm.codPermissao)}
+          onChange={() => handleCheckboxChange(perm.codPermissao)}
+        />
+        {perm.nome
+          .replace("PERM_", "")
+          .replace("MOVIX_", "")
+          .replace("FDV_", "")
+          .replaceAll("_", " ")}
+      </label>
+    ));
   };
 
   return (
     <div className={styles.overlay}>
       <div className={styles.container}>
-        {/* Header */}
         <div className={styles.header}>
           <h2 className={styles.title}>NOVO CARGO</h2>
           <button className={styles.closeButton} onClick={onClose}>
@@ -76,7 +121,6 @@ export default function ModalNovoCargo({
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
-          {/* Nome do Cargo */}
           <div className={styles.inputGroup}>
             <label>Nome do Cargo</label>
             <input
@@ -88,42 +132,32 @@ export default function ModalNovoCargo({
             />
           </div>
 
-          {/* Área de Permissões */}
           <div className={styles.permissionsTitle}>Permissões</div>
 
-          <div className={styles.rolesContainer}>
-            {/* Coluna Movix */}
-            <div className={styles.roleColumn}>
-              <div className={styles.roleHeader}>Movix</div>
-              {PERMISSOES_MOVIX.map((perm) => (
-                <label key={perm} className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={permissoesSelecionadas.includes(perm)}
-                    onChange={() => handleCheckboxChange(perm)}
-                  />
-                  {perm}
-                </label>
-              ))}
-            </div>
+          {loading ? (
+            <p style={{ textAlign: "center", color: "#666" }}>
+              Carregando permissões...
+            </p>
+          ) : (
+            <div className={styles.rolesContainer}>
+              <div className={styles.roleColumn}>
+                <div className={styles.roleHeader}>Movix</div>
+                {renderPermissaoList(permsMovix)}
+              </div>
 
-            {/* Coluna Força de Vendas */}
-            <div className={styles.roleColumn}>
-              <div className={styles.roleHeader}>Força de Vendas</div>
-              {PERMISSOES_FDV.map((perm) => (
-                <label key={perm} className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={permissoesSelecionadas.includes(perm)}
-                    onChange={() => handleCheckboxChange(perm)}
-                  />
-                  {perm}
-                </label>
-              ))}
+              <div className={styles.roleColumn}>
+                <div className={styles.roleHeader}>Força de Vendas</div>
+                {renderPermissaoList(permsFdv)}
+              </div>
+              {permsOutros.length > 0 && (
+                <div className={styles.roleColumn}>
+                  <div className={styles.roleHeader}>Outros</div>
+                  {renderPermissaoList(permsOutros)}
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
-          {/* Footer */}
           <div className={styles.footer}>
             <button
               type="button"

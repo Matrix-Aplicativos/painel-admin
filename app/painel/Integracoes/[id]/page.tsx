@@ -14,9 +14,7 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import PaginationControls from "@/app/src/components/PaginationControls";
-// Importamos o modal ajustado
 import ModalNovaEmpresa from "@/app/src/components/modals/ModalNovaEmpresa";
-
 import useGetIntegracaoById from "@/app/src/hooks/Integracao/useGetIntegracaoById";
 import useGetEmpresa from "@/app/src/hooks/Empresa/useGetEmpresa";
 import useDeleteIntegracao from "@/app/src/hooks/Integracao/useDeleteIntegracao";
@@ -27,31 +25,25 @@ export default function IntegrationDetailsPage() {
 
   const idIntegracao = Number(params.id);
 
-  // Estados locais
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
   const [isNewCompanyModalOpen, setIsNewCompanyModalOpen] = useState(false);
 
-  // Controle de Edição da Integração
   const [isEditing, setIsEditing] = useState(false);
   const [formDataIntegracao, setFormDataIntegracao] = useState<any>({});
 
-  // Filtros da Tabela de Empresas
   const [filtroRazao, setFiltroRazao] = useState("");
   const [filtroCnpj, setFiltroCnpj] = useState("");
   const [filtroCidade, setFiltroCidade] = useState("");
 
-  // Hook 1: Detalhes da Integração
   const {
     integracao,
     loading: loadingIntegracao,
     error: errorIntegracao,
   } = useGetIntegracaoById(idIntegracao);
 
-  // Hook 2: Delete Integração
   const { deleteIntegracao, loading: loadingDelete } = useDeleteIntegracao();
 
-  // Hook 3: Listar Empresas (GET)
   const {
     empresas,
     pagination,
@@ -66,7 +58,6 @@ export default function IntegrationDetailsPage() {
     cidade: filtroCidade,
   });
 
-  // Sincroniza dados da API com o form local de edição da Integração
   useEffect(() => {
     if (integracao) {
       setFormDataIntegracao({
@@ -83,18 +74,14 @@ export default function IntegrationDetailsPage() {
   const handleNovaEmpresa = () => {
     setIsNewCompanyModalOpen(true);
   };
-
-  // Função chamada quando o Modal salva com sucesso
   const handleEmpresaSalvaComSucesso = () => {
-    refetchEmpresas(); // Recarrega a lista
+    refetchEmpresas(); 
   };
 
   const handleBuscarEmpresas = () => {
     setPaginaAtual(1);
     refetchEmpresas();
   };
-
-  // --- Ações da Integração (Editar/Excluir) ---
 
   const handleEditar = () => {
     setIsEditing(true);
@@ -144,7 +131,6 @@ export default function IntegrationDetailsPage() {
 
   return (
     <div className={styles.container}>
-      {/* MODAL NOVA EMPRESA */}
       <ModalNovaEmpresa
         isOpen={isNewCompanyModalOpen}
         onClose={() => setIsNewCompanyModalOpen(false)}

@@ -9,88 +9,210 @@ import {
   FiAlertCircle,
   FiRefreshCw,
   FiPlus,
+  FiX,
 } from "react-icons/fi";
-import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
 import PaginationControls from "@/app/src/components/PaginationControls";
 
-// Importar Modais
-import ModalNovoCargo from "@/app/src/components/modals/ModalNovoCargo";
+import useGetUsuarioById, {
+  UsuarioDetalhe,
+} from "@/app/src/hooks/Usuario/useGetUsuarioById";
+import useDeleteUsuario from "@/app/src/hooks/Usuario/useDeleteUsuario";
+import useGetCargo, { CargoItem } from "@/app/src/hooks/Cargo/useGetCargo";
 
+import ModalNovoCargo from "@/app/src/components/modals/ModalNovoCargo";
 import ModalNovoFuncionario from "@/app/src/components/modals/ModalNovoFuncionario";
 import ModalVincularEmpresa from "@/app/src/components/modals/ModalEmpresas";
 
-const MOCK_EMPRESAS_USER = [
-  {
-    id: 1,
-    razao: "Razão Social da Empresa 1",
-    cnpj: "09.346.601/0001-25",
-    cidade: "Cuiabá, MT",
-    status: true,
-  },
-  {
-    id: 2,
-    razao: "Razão Social da Empresa 2",
-    cnpj: "09.346.601/0001-25",
-    cidade: "Cuiabá, MT",
-    status: true,
-  },
-];
-
 export default function UserDetailsPage() {
   const params = useParams();
-  const id = params.id;
-  const [empresas, setEmpresas] = useState(MOCK_EMPRESAS_USER);
+  const router = useRouter();
+  const id = Number(params.id);
+
+  const { usuario, loading, error } = useGetUsuarioById(id);
+  const { deleteUsuario, loading: loadingDelete } = useDeleteUsuario();
+
+  const { cargos, loading: loadingCargos } = useGetCargo({
+    pagina: 1,
+    porPagina: 100,
+    direction: "asc",
+    orderBy: "nome",
+  });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<Partial<UsuarioDetalhe>>({});
+
+  const [selectedCargos, setSelectedCargos] = useState<number[]>([]);
+
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
 
-  // Estados dos Modais
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
-
-  // Novo Estado para Funcionário
   const [isFuncionarioModalOpen, setIsFuncionarioModalOpen] = useState(false);
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | string>(
     ""
   );
 
-  // Handlers
+  useEffect(() => {
+    if (usuario) {
+      setFormData({
+        nome: usuario.nome,
+        login: usuario.login,
+        email: usuario.email,
+        ativo: usuario.ativo,
+      });
+    }
+  }, [usuario]);
+
+  const { cargosMovix, cargosFdv, cargosOutros } = useMemo(() => {
+    const movix: CargoItem[] = [];
+    const fdv: CargoItem[] = [];
+    const outros: CargoItem[] = [];
+
+    cargos.forEach((cargo) => {
+      const nome = cargo.nome.toUpperCase();
+      if (nome.includes("MOVIX")) {
+        movix.push(cargo);
+      } else if (nome.includes("FDV")) {
+        fdv.push(cargo);
+      } else {
+        outros.push(cargo);
+      }
+    });
+
+    return { cargosMovix: movix, cargosFdv: fdv, cargosOutros: outros };
+  }, [cargos]);
+
+  const handleEditar = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelarEdicao = () => {
+    setIsEditing(false);
+    if (usuario) {
+      setFormData({
+        nome: usuario.nome,
+        login: usuario.login,
+        email: usuario.email,
+        ativo: usuario.ativo,
+      });
+    }
+  };
+
+  const handleSalvarEdicao = () => {
+    console.log("Salvar Edição:", { ...formData, cargos: selectedCargos });
+    setIsEditing(false);
+  };
+
+  const handleExcluir = async () => {
+    const confirmacao = window.confirm(
+      "Deseja realmente excluir este usuário? Esta ação não pode ser desfeita."
+    );
+
+    if (confirmacao) {
+      const sucesso = await deleteUsuario(id);
+      if (sucesso) {
+        alert("Usuário excluído com sucesso!");
+        router.push("/painel/Usuarios");
+      }
+    }
+  };
+
+  const handleInputChange = (field: keyof UsuarioDetalhe, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleToggleCargo = (codCargo: number) => {
+    if (!isEditing) return;
+
+    setSelectedCargos((prev) => {
+      if (prev.includes(codCargo)) {
+        return prev.filter((id) => id !== codCargo);
+      } else {
+        return [...prev, codCargo];
+      }
+    });
+  };
+
   const handleSaveRole = (cargo: string) => {
-    console.log("Novo cargo adicionado:", cargo);
+    console.log("Novo cargo:", cargo);
     setIsRoleModalOpen(false);
   };
 
   const handleVincularEmpresa = (empresa: any) => {
-    setEmpresas([...empresas, { ...empresa, status: true }]);
+    console.log("Vincular:", empresa);
     setIsCompanyModalOpen(false);
   };
 
-  // Handler para abrir modal de funcionário
   const handleOpenFuncionarioModal = (empresaId: number) => {
     setSelectedCompanyId(empresaId);
     setIsFuncionarioModalOpen(true);
   };
 
   const handleSaveFuncionario = (data: any) => {
-    console.log("Funcionário Salvo:", data);
+    console.log("Funcionario Salvo:", data);
     setIsFuncionarioModalOpen(false);
+  };
+
+  if (loading)
+    return (
+      <div className={styles.container}>
+        <p>Carregando dados...</p>
+      </div>
+    );
+  if (error || !usuario)
+    return (
+      <div className={styles.container}>
+        <p>Erro ao carregar usuário.</p>
+      </div>
+    );
+
+  const listaEmpresas = usuario.empresas || [];
+  const totalEmpresas = listaEmpresas.length;
+  const empresasPaginadas = listaEmpresas.slice(
+    (paginaAtual - 1) * porPagina,
+    paginaAtual * porPagina
+  );
+
+  const renderCargoList = (lista: CargoItem[]) => {
+    if (lista.length === 0)
+      return (
+        <p style={{ fontSize: "12px", color: "#999", fontStyle: "italic" }}>
+          Nenhum cargo.
+        </p>
+      );
+
+    return lista.map((cargo) => (
+      <label key={cargo.codCargo} className={styles.checkboxItem}>
+        <input
+          type="checkbox"
+          checked={selectedCargos.includes(cargo.codCargo)}
+          onChange={() => handleToggleCargo(cargo.codCargo)}
+          disabled={!isEditing}
+        />
+        {cargo.nome
+          .replace("ROLE_", "")
+          .replace("MOVIX_", "")
+          .replace("FDV_", "")
+          .replaceAll("_", " ")}
+      </label>
+    ));
   };
 
   return (
     <div className={styles.container}>
-      {/* --- RENDERIZAR OS MODAIS --- */}
       <ModalNovoCargo
         isOpen={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
         onSave={handleSaveRole}
       />
-
       <ModalVincularEmpresa
         isOpen={isCompanyModalOpen}
         onClose={() => setIsCompanyModalOpen(false)}
         onVincular={handleVincularEmpresa}
       />
-
       <ModalNovoFuncionario
         isOpen={isFuncionarioModalOpen}
         onClose={() => setIsFuncionarioModalOpen(false)}
@@ -98,110 +220,146 @@ export default function UserDetailsPage() {
         empresaId={selectedCompanyId}
       />
 
-      {/* HEADER */}
       <div className={styles.header}>
         <div className={styles.titleArea}>
-          <h1 className={styles.title}>NOME DO USUÁRIO</h1>
-          <span className={styles.statusBadge}>ATIVO</span>
+          <h1 className={styles.title}>{usuario.nome?.toUpperCase()}</h1>
+          <span
+            className={`${styles.statusBadge} ${
+              usuario.ativo
+                ? tableStyles.statusCompleted
+                : tableStyles.statusNotStarted
+            }`}
+          >
+            {usuario.ativo ? "ATIVO" : "INATIVO"}
+          </span>
         </div>
 
         <div className={styles.headerButtons}>
-          <div className={styles.buttonRow}>
-            <button className={`${styles.btn} ${styles.btnBlue}`}>
-              Editar <FiEdit2 />
-            </button>
-            <button className={`${styles.btn} ${styles.btnRed}`}>
-              Excluir <FiTrash2 />
-            </button>
-          </div>
-          <div className={styles.buttonRow}>
-            <button className={`${styles.btn} ${styles.btnGreen}`}>
-              Salvar <FiCheck />
-            </button>
-            <button className={`${styles.btn} ${styles.btnRed}`}>
-              Cancelar <FiTrash2 />
-            </button>
-          </div>
+          {!isEditing ? (
+            <div className={styles.buttonRow}>
+              <button
+                className={`${styles.btn} ${styles.btnBlue}`}
+                onClick={handleEditar}
+                disabled={loadingDelete}
+              >
+                Editar <FiEdit2 />
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnRed}`}
+                onClick={handleExcluir}
+                disabled={loadingDelete}
+              >
+                {loadingDelete ? "Excluindo..." : "Excluir"} <FiTrash2 />
+              </button>
+            </div>
+          ) : (
+            <div className={styles.buttonRow}>
+              <button
+                className={`${styles.btn} ${styles.btnGreen}`}
+                onClick={handleSalvarEdicao}
+              >
+                Salvar <FiCheck />
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnRed}`}
+                onClick={handleCancelarEdicao}
+              >
+                Cancelar <FiX />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* DADOS CADASTRO */}
       <div className={styles.sectionTitle}>Dados de Cadastro</div>
       <div className={styles.formGroup}>
         <div className={styles.inputRow}>
           <div className={styles.inputWrapper}>
             <label>Nome</label>
-            <input type="text" defaultValue="Nome do Usuário" />
+            <input
+              type="text"
+              value={formData.nome || ""}
+              onChange={(e) => handleInputChange("nome", e.target.value)}
+              disabled={!isEditing}
+            />
           </div>
           <div className={styles.inputWrapper}>
             <label>Login</label>
-            <input type="text" defaultValue="000.000.000-11" />
+            <input
+              type="text"
+              value={formData.login || ""}
+              onChange={(e) => handleInputChange("login", e.target.value)}
+              disabled={!isEditing}
+            />
           </div>
         </div>
 
         <div className={styles.inputRow}>
           <div className={styles.inputWrapper}>
             <label>E-mail</label>
-            <input type="email" defaultValue="email@exemplo.com" />
+            <input
+              type="email"
+              value={formData.email || ""}
+              onChange={(e) => handleInputChange("email", e.target.value)}
+              disabled={!isEditing}
+            />
           </div>
 
           <div className={styles.userActionsRow}>
             <button
               className={`${styles.btn} ${styles.btnBlue}`}
               style={{ height: "38px" }}
+              disabled={isEditing}
             >
               Alterar Senha <FiRefreshCw />
             </button>
             <button
               className={`${styles.btn} ${styles.btnRed}`}
               style={{ height: "38px" }}
+              disabled={isEditing}
             >
-              Desativar <FiAlertCircle />
+              {usuario.ativo ? "Desativar" : "Ativar"} <FiAlertCircle />
             </button>
           </div>
         </div>
       </div>
 
-      {/* CARGOS */}
       <div className={styles.sectionTitle}>Cargos</div>
       <button
         className={styles.primaryButton}
         onClick={() => setIsRoleModalOpen(true)}
+        disabled={isEditing}
       >
         Novo <FiPlus size={16} />
       </button>
 
-      <div className={styles.rolesGrid}>
-        {/* ... (mesmo conteúdo de cargos) ... */}
-        <div className={styles.roleColumn}>
-          <div className={styles.roleHeader}>Movix</div>
-          <label className={styles.checkboxItem}>
-            <input type="checkbox" defaultChecked /> ROLE_MOVIX_GESTOR
-          </label>
-          <label className={styles.checkboxItem}>
-            <input type="checkbox" /> ROLE_MOVIX_FUNCIONARIO
-          </label>
-        </div>
-        <div className={styles.roleColumn}>
-          <div className={styles.roleHeader}>Força de Vendas</div>
-          <label className={styles.checkboxItem}>
-            <input type="checkbox" /> ROLE_FDV_GESTOR
-          </label>
-        </div>
-        <div className={styles.roleColumn}>
-          <div className={styles.roleHeader}>Outros</div>
-          <label className={styles.checkboxItem}>
-            <input type="checkbox" /> ROLE_ADMIN
-          </label>
-        </div>
-      </div>
+      {loadingCargos ? (
+        <p style={{ padding: "20px", color: "#666" }}>Carregando cargos...</p>
+      ) : (
+        <div className={styles.rolesGrid}>
+          <div className={styles.roleColumn}>
+            <div className={styles.roleHeader}>Movix</div>
+            {renderCargoList(cargosMovix)}
+          </div>
 
-      {/* EMPRESAS */}
+          <div className={styles.roleColumn}>
+            <div className={styles.roleHeader}>Força de Vendas</div>
+            {renderCargoList(cargosFdv)}
+          </div>
+
+          <div className={styles.roleColumn}>
+            <div className={styles.roleHeader}>Outros</div>
+            {renderCargoList(cargosOutros)}
+          </div>
+        </div>
+      )}
+
       <div className={styles.companiesSection}>
         <div className={styles.sectionTitle}>Empresas Vinculadas</div>
         <button
           className={styles.primaryButton}
           onClick={() => setIsCompanyModalOpen(true)}
+          disabled={isEditing}
         >
           Vincular Empresa <FiPlus size={16} />
         </button>
@@ -219,47 +377,60 @@ export default function UserDetailsPage() {
                 </tr>
               </thead>
               <tbody>
-                {empresas.map((emp) => (
-                  <tr key={emp.id}>
-                    <td>{emp.razao}</td>
+                {empresasPaginadas.map((emp) => (
+                  <tr key={emp.codEmpresa}>
+                    <td>{emp.razaoSocial}</td>
                     <td>{emp.cnpj}</td>
-                    <td>{emp.cidade}</td>
+                    <td>
+                      {emp.municipio?.nome} - {emp.municipio?.uf}
+                    </td>
                     <td>
                       <span
-                        className={`${tableStyles.statusBadge} ${tableStyles.statusCompleted}`}
+                        className={`${tableStyles.statusBadge} ${
+                          emp.ativo
+                            ? tableStyles.statusCompleted
+                            : tableStyles.statusNotStarted
+                        }`}
                       >
-                        ATIVO
+                        {emp.ativo ? "ATIVO" : "INATIVO"}
                       </span>
                     </td>
                     <td>
-                      {/* BOTÃO CADASTRO DE FUNCIONÁRIO COM AÇÃO */}
                       <button
-                        className={
-                          styles.btnTableAction + " " + styles.btnFuncionario
+                        className={`${styles.btnTableAction} ${styles.btnFuncionario}`}
+                        onClick={() =>
+                          handleOpenFuncionarioModal(emp.codEmpresa)
                         }
-                        onClick={() => handleOpenFuncionarioModal(emp.id)}
+                        disabled={isEditing}
                       >
                         Cadastro de Funcionário
                       </button>
 
                       <button
-                        className={
-                          styles.btnTableAction + " " + styles.btnRemover
-                        }
+                        className={`${styles.btnTableAction} ${styles.btnRemover}`}
+                        onClick={() => alert("Implementar desvínculo")}
+                        disabled={isEditing}
                       >
                         Remover
                       </button>
                     </td>
                   </tr>
                 ))}
+                {empresasPaginadas.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center" }}>
+                      Nenhuma empresa vinculada.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
 
           <PaginationControls
             paginaAtual={paginaAtual}
-            totalPaginas={1}
-            totalElementos={empresas.length}
+            totalPaginas={Math.ceil(totalEmpresas / porPagina) || 1}
+            totalElementos={totalEmpresas}
             porPagina={porPagina}
             onPageChange={setPaginaAtual}
             onItemsPerPageChange={setPorPagina}

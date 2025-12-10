@@ -1,351 +1,187 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import styles from "./ModalEmpresas.module.css";
-import { FiX, FiSave, FiCheckSquare, FiSquare, FiSearch } from "react-icons/fi";
-import usePostEmpresa, {
-  EmpresaPayload,
-} from "@/app/src/hooks/Empresa/usePostEmpresa";
-import ModalMunicipio from "./ModalMunicipio";
-import { MunicipioItem } from "../../hooks/Municipio/useGetMunicipio";
+import { useState } from "react";
+import styles from "./ModalMunicipio.module.css";
+import { FiX, FiSearch } from "react-icons/fi";
+import PaginationControls from "../PaginationControls";
+import useGetEmpresa, {
+  EmpresaItem,
+} from "@/app/src/hooks/Empresa/useGetEmpresa";
 
-interface ModalNovaEmpresaProps {
+interface ModalVincularEmpresaProps {
   isOpen: boolean;
   onClose: () => void;
-  codIntegracao: number;
-  onSuccess: () => void; 
+  onVincular: (empresa: EmpresaItem) => void;
 }
 
-const INITIAL_DATA: EmpresaPayload = {
-  codEmpresa: null,
-  codIntegracao: 0,
-  codEmpresaErp: "",
-  cnpj: "",
-  razaoSocial: "",
-  nomeFantasia: "",
-  bairro: "",
-  codMunicipioIbge: "",
-  acessoColeta: false,
-  acessoFv: false,
-  maxDispositivosColeta: 0,
-  maxDispositivosMultiColeta: 0,
-  validadeLicencaColeta: "",
-  maxDispositivosFv: 0,
-  maxDispositivosMultiFv: 0,
-  validadeLicencaFv: "",
-  ativo: true,
-};
-
-export default function ModalNovaEmpresa({
+export default function ModalVincularEmpresa({
   isOpen,
   onClose,
-  codIntegracao,
-  onSuccess,
-}: ModalNovaEmpresaProps) {
-  const { createEmpresa, loading } = usePostEmpresa();
-  const [formData, setFormData] = useState<EmpresaPayload>(INITIAL_DATA);
-  const [activeTab, setActiveTab] = useState<"geral" | "config">("geral");
-  const [isCityModalOpen, setIsCityModalOpen] = useState(false);
-  const [nomeCidadeSelecionada, setNomeCidadeSelecionada] = useState("");
+  onVincular,
+}: ModalVincularEmpresaProps) {
+  // Estados dos Filtros
+  const [buscaRazao, setBuscaRazao] = useState("");
+  const [buscaCnpj, setBuscaCnpj] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      setFormData({ ...INITIAL_DATA, codIntegracao: codIntegracao });
-      setNomeCidadeSelecionada(""); 
-    }
-  }, [isOpen, codIntegracao]);
+  // Estados da Paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [porPagina, setPorPagina] = useState(20);
 
-  const handleChange = (field: keyof EmpresaPayload, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleSelectCity = (cidade: MunicipioItem) => {
-    handleChange("codMunicipioIbge", cidade.codMunicipioIbge);
-    setNomeCidadeSelecionada(`${cidade.nome} - ${cidade.uf}`);
-
-    setIsCityModalOpen(false);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.razaoSocial || !formData.cnpj) {
-      alert("Preencha Razão Social e CNPJ");
-      return;
-    }
-
-    const sucesso = await createEmpresa(formData);
-
-    if (sucesso) {
-      onSuccess();
-      onClose();
-    }
-  };
+  // Hook de Dados
+  const { empresas, pagination, loading, refetch } = useGetEmpresa({
+    pagina: paginaAtual,
+    porPagina: porPagina,
+    razaoSocial: buscaRazao,
+    cnpj: buscaCnpj,
+    orderBy: "razaoSocial",
+    direction: "asc",
+  });
 
   if (!isOpen) return null;
 
+  const handleBuscar = () => {
+    setPaginaAtual(1);
+    refetch();
+  };
+
+  const handleSelecionar = (item: EmpresaItem) => {
+    onVincular(item);
+    onClose();
+  };
+
   return (
     <div className={styles.overlay}>
-
-      <ModalMunicipio
-        isOpen={isCityModalOpen}
-        onClose={() => setIsCityModalOpen(false)}
-        onSelect={handleSelectCity}
-      />
-
-      <div className={styles.container} style={{ maxWidth: "800px" }}>
+      <div
+        className={styles.container}
+        style={{ width: "800px", maxWidth: "95%" }}
+      >
+        {/* Header */}
         <div className={styles.header}>
-          <h2 className={styles.title}>NOVA EMPRESA</h2>
+          <h2 className={styles.title}>VINCULAR EMPRESA</h2>
           <button className={styles.closeButton} onClick={onClose}>
             <FiX />
           </button>
         </div>
 
-        <div className={styles.tabs}>
-          <button
-            className={`${styles.tabBtn} ${
-              activeTab === "geral" ? styles.active : ""
-            }`}
-            onClick={() => setActiveTab("geral")}
-          >
-            Dados Gerais
-          </button>
-          <button
-            className={`${styles.tabBtn} ${
-              activeTab === "config" ? styles.active : ""
-            }`}
-            onClick={() => setActiveTab("config")}
-          >
-            Configurações e Licenças
+        {/* Filtros */}
+        <div className={styles.filtersRow}>
+          <div className={styles.inputGroup} style={{ flex: 2 }}>
+            <label>Razão Social</label>
+            <input
+              type="text"
+              placeholder="Buscar por Razão Social"
+              value={buscaRazao}
+              onChange={(e) => setBuscaRazao(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
+            />
+          </div>
+          <div className={styles.inputGroup} style={{ flex: 1 }}>
+            <label>CNPJ</label>
+            <input
+              type="text"
+              placeholder="Buscar por CNPJ"
+              value={buscaCnpj}
+              onChange={(e) => setBuscaCnpj(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
+            />
+          </div>
+          <button className={styles.btnSearch} onClick={handleBuscar}>
+            Buscar <FiSearch />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className={styles.formContent}>
-          {activeTab === "geral" && (
-            <div className={styles.gridForm}>
-              <div className={styles.inputGroup}>
-                <label>Razão Social *</label>
-                <input
-                  type="text"
-                  value={formData.razaoSocial}
-                  onChange={(e) => handleChange("razaoSocial", e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className={styles.rowTwo}>
-                <div className={styles.inputGroup}>
-                  <label>CNPJ *</label>
-                  <input
-                    type="text"
-                    value={formData.cnpj}
-                    onChange={(e) => handleChange("cnpj", e.target.value)}
-                    required
-                  />
-                </div>
-                <div className={styles.inputGroup}>
-                  <label>Fantasia</label>
-                  <input
-                    type="text"
-                    value={formData.nomeFantasia}
-                    onChange={(e) =>
-                      handleChange("nomeFantasia", e.target.value)
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className={styles.rowTwo}>
-                <div className={styles.inputGroup}>
-                  <label>Cód. ERP</label>
-                  <input
-                    type="text"
-                    value={formData.codEmpresaErp}
-                    onChange={(e) =>
-                      handleChange("codEmpresaErp", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className={styles.inputGroup}>
-                  <label>Município (IBGE)</label>
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <input
-                      type="text"
-                      value={nomeCidadeSelecionada}
-                      placeholder="Selecione a cidade"
-                      readOnly 
-                      style={{ cursor: "pointer", flex: 1 }}
-                      onClick={() => setIsCityModalOpen(true)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsCityModalOpen(true)}
-                      style={{
-                        background: "#eee",
-                        border: "1px solid #ccc",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        padding: "0 10px",
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      <FiSearch />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.inputGroup}>
-                <label>Bairro</label>
-                <input
-                  type="text"
-                  value={formData.bairro}
-                  onChange={(e) => handleChange("bairro", e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {activeTab === "config" && (
-            <div className={styles.gridForm}>
-              <div className={styles.sectionBox}>
-                <div
-                  className={styles.checkTitle}
-                  onClick={() =>
-                    handleChange("acessoColeta", !formData.acessoColeta)
-                  }
-                >
-                  {formData.acessoColeta ? (
-                    <FiCheckSquare color="green" />
-                  ) : (
-                    <FiSquare />
-                  )}
-                  <span>Acesso Coleta</span>
-                </div>
-
-                {formData.acessoColeta && (
-                  <div className={styles.subGrid}>
-                    <div className={styles.inputGroup}>
-                      <label>Max. Disp.</label>
-                      <input
-                        type="number"
-                        value={formData.maxDispositivosColeta}
-                        onChange={(e) =>
-                          handleChange(
-                            "maxDispositivosColeta",
-                            Number(e.target.value)
-                          )
-                        }
-                      />
-                    </div>
-                    <div className={styles.inputGroup}>
-                      <label>Max. Multi</label>
-                      <input
-                        type="number"
-                        value={formData.maxDispositivosMultiColeta}
-                        onChange={(e) =>
-                          handleChange(
-                            "maxDispositivosMultiColeta",
-                            Number(e.target.value)
-                          )
-                        }
-                      />
-                    </div>
-                    <div className={styles.inputGroup}>
-                      <label>Validade Licença</label>
-                      <input
-                        type="date"
-                        value={
-                          formData.validadeLicencaColeta
-                            ? formData.validadeLicencaColeta.split("T")[0]
-                            : ""
-                        }
-                        onChange={(e) =>
-                          handleChange("validadeLicencaColeta", e.target.value)
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.sectionBox}>
-                <div
-                  className={styles.checkTitle}
-                  onClick={() => handleChange("acessoFv", !formData.acessoFv)}
-                >
-                  {formData.acessoFv ? (
-                    <FiCheckSquare color="green" />
-                  ) : (
-                    <FiSquare />
-                  )}
-                  <span>Acesso Força de Vendas</span>
-                </div>
-
-                {formData.acessoFv && (
-                  <div className={styles.subGrid}>
-                    <div className={styles.inputGroup}>
-                      <label>Max. Disp.</label>
-                      <input
-                        type="number"
-                        value={formData.maxDispositivosFv}
-                        onChange={(e) =>
-                          handleChange(
-                            "maxDispositivosFv",
-                            Number(e.target.value)
-                          )
-                        }
-                      />
-                    </div>
-                    <div className={styles.inputGroup}>
-                      <label>Max. Multi</label>
-                      <input
-                        type="number"
-                        value={formData.maxDispositivosMultiFv}
-                        onChange={(e) =>
-                          handleChange(
-                            "maxDispositivosMultiFv",
-                            Number(e.target.value)
-                          )
-                        }
-                      />
-                    </div>
-                    <div className={styles.inputGroup}>
-                      <label>Validade Licença</label>
-                      <input
-                        type="date"
-                        value={
-                          formData.validadeLicencaFv
-                            ? formData.validadeLicencaFv.split("T")[0]
-                            : ""
-                        }
-                        onChange={(e) =>
-                          handleChange("validadeLicencaFv", e.target.value)
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className={styles.footerActions}>
-            <button
-              type="button"
-              className={styles.btnCancel}
-              onClick={onClose}
-              disabled={loading}
+        {/* Tabela com Scroll */}
+        <div
+          className={styles.tableContainer}
+          style={{
+            maxHeight: "60vh",
+            overflowY: "auto",
+            marginTop: "10px",
+            borderBottom: "1px solid #eee",
+          }}
+        >
+          <table className={styles.table}>
+            <thead
+              style={{
+                position: "sticky",
+                top: 0,
+                zIndex: 1,
+                backgroundColor: "#fff",
+              }}
             >
-              Cancelar
-            </button>
-            <button type="submit" className={styles.btnSave} disabled={loading}>
-              {loading ? "Salvando..." : "Salvar Empresa"} <FiSave />
-            </button>
+              <tr>
+                <th>Cód.</th>
+                <th>Razão Social</th>
+                <th>CNPJ</th>
+                <th>Cidade / UF</th>
+                <th style={{ width: "120px", textAlign: "center" }}>Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    style={{ textAlign: "center", padding: "20px" }}
+                  >
+                    Carregando empresas...
+                  </td>
+                </tr>
+              )}
+
+              {!loading && empresas.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    style={{ textAlign: "center", padding: "20px" }}
+                  >
+                    Nenhuma empresa encontrada.
+                  </td>
+                </tr>
+              )}
+
+              {!loading &&
+                empresas.map((item) => (
+                  <tr key={item.codEmpresa}>
+                    <td>{item.codEmpresa}</td>
+                    <td>{item.razaoSocial}</td>
+                    <td>{item.cnpj}</td>
+                    <td>
+                      {item.municipio
+                        ? `${item.municipio.nome} - ${item.municipio.uf}`
+                        : "-"}
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <button
+                        className={styles.btnSelect}
+                        onClick={() => handleSelecionar(item)}
+                      >
+                        Selecionar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginação */}
+        {pagination && (
+          <div style={{ marginTop: "15px", flexShrink: 0 }}>
+            <PaginationControls
+              paginaAtual={pagination.paginaAtual}
+              totalPaginas={pagination.qtdPaginas}
+              totalElementos={pagination.qtdElementos}
+              porPagina={porPagina}
+              onPageChange={setPaginaAtual}
+              onItemsPerPageChange={(val) => {
+                setPorPagina(val);
+                setPaginaAtual(1);
+              }}
+              itemsPerPageOptions={[20, 50, 100]}
+            />
           </div>
-        </form>
+        )}
       </div>
     </div>
   );
