@@ -28,14 +28,16 @@ export default function ModalIntegracao({
   onSaveSuccess,
   initialData,
 }: ModalIntegracaoProps) {
-  const { createIntegracao, loading, error, success } = usePostIntegracao();
-
+  //Declaração de todos os useStates
   const [formData, setFormData] = useState<IntegracaoFormData>({
     descricao: "",
     cnpj: "",
     maxEmpresas: 1,
     senhaGerada: "",
   });
+
+  //Declaração de Funções e Lógica
+  const { createIntegracao, loading, error } = usePostIntegracao();
 
   const generatePassword = () => {
     const length = 16;
@@ -85,7 +87,7 @@ export default function ModalIntegracao({
           descricao: "",
           cnpj: "",
           maxEmpresas: 1,
-          senhaGerada: generatePassword(), 
+          senhaGerada: generatePassword(),
         });
       }
     }
@@ -114,13 +116,14 @@ export default function ModalIntegracao({
     e.preventDefault();
 
     const payload: IntegracaoPayload = {
-      codIntegracao: null, 
+      codIntegracao: null,
       descricao: formData.descricao,
       cnpj: formData.cnpj,
       maxEmpresas: Number(formData.maxEmpresas),
       ativo: true,
       usuario: {
-        nomeUsuario: formData.cnpj.replace(/\D/g, ""),
+        // ALTERAÇÃO AQUI: "Integração " + Descrição
+        nomeUsuario: `Integração ${formData.descricao}`,
         senha: formData.senhaGerada,
       },
     };
@@ -128,142 +131,152 @@ export default function ModalIntegracao({
     const isCreated = await createIntegracao(payload);
 
     if (isCreated) {
-      onSaveSuccess(); 
+      onSaveSuccess();
     }
   };
 
+  //Declaração de Funções de renderização
+  const renderHeader = () => (
+    <div className={styles.header}>
+      <h2 className={styles.title}>
+        {initialData ? "EDITAR INTEGRAÇÃO" : "NOVA INTEGRAÇÃO"}
+      </h2>
+      <button
+        className={styles.closeButton}
+        onClick={onClose}
+        title="Fechar"
+        disabled={loading}
+      >
+        <FiX />
+      </button>
+    </div>
+  );
+
+  const renderForm = () => (
+    <form className={styles.form} onSubmit={handleSubmit}>
+      <h3 className={styles.sectionTitle}>Dados de Cadastro</h3>
+
+      <div className={styles.inputGroup}>
+        <label>Descrição</label>
+        <input
+          name="descricao"
+          type="text"
+          placeholder="Ex: ERP Protheus"
+          value={formData.descricao}
+          onChange={handleChange}
+          required
+          disabled={loading}
+        />
+      </div>
+
+      <div className={styles.formRow}>
+        <div className={styles.inputGroup} style={{ flex: 2 }}>
+          <label>CNPJ</label>
+          <input
+            name="cnpj"
+            type="text"
+            placeholder="00.000.000/0000-00"
+            value={formData.cnpj}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
+        </div>
+        <div className={styles.inputGroup} style={{ flex: 1 }}>
+          <label>Máximo de Empresas</label>
+          <input
+            name="maxEmpresas"
+            type="number"
+            min="1"
+            value={formData.maxEmpresas}
+            onChange={handleChange}
+            disabled={loading}
+          />
+        </div>
+      </div>
+
+      <h3 className={styles.sectionTitle}>Usuário de Integração</h3>
+
+      <div
+        className={styles.infoBox}
+        style={{ fontSize: "12px", color: "#666", marginBottom: "10px" }}
+      >
+        {/* Atualizei o texto para refletir a nova regra */}O nome do usuário
+        será gerado automaticamente: "Integração {formData.descricao || "..."}"
+      </div>
+
+      <div className={styles.formRow}>
+        <div className={styles.inputGroup} style={{ flex: 1 }}>
+          <label>Senha</label>
+          <div className={styles.passwordWrapper}>
+            <input
+              name="senhaGerada"
+              type="text"
+              placeholder="Senha"
+              value={formData.senhaGerada}
+              readOnly
+              style={{ backgroundColor: "#f9f9f9", cursor: "default" }}
+            />
+            {formData.senhaGerada && (
+              <button
+                type="button"
+                className={styles.copyButton}
+                onClick={handleCopyPassword}
+                title="Copiar Senha"
+              >
+                <FiCopy size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className={styles.generateButton}
+          onClick={handleGeneratePassword}
+          disabled={loading}
+        >
+          Gerar <FiKey />
+        </button>
+      </div>
+
+      {error && (
+        <div
+          style={{
+            color: "red",
+            marginTop: 10,
+            fontSize: 14,
+            textAlign: "center",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      <div className={styles.footer}>
+        <button
+          type="button"
+          className={styles.btnCancel}
+          onClick={onClose}
+          disabled={loading}
+        >
+          Cancelar
+        </button>
+        <button type="submit" className={styles.btnSave} disabled={loading}>
+          {loading ? "Salvando..." : "Salvar"} <FiCheck />
+        </button>
+      </div>
+    </form>
+  );
+
+  //Return
   if (!isOpen) return null;
 
   return (
     <div className={styles.overlay}>
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h2 className={styles.title}>
-            {initialData ? "EDITAR INTEGRAÇÃO" : "NOVA INTEGRAÇÃO"}
-          </h2>
-          <button
-            className={styles.closeButton}
-            onClick={onClose}
-            title="Fechar"
-            disabled={loading}
-          >
-            <FiX />
-          </button>
-        </div>
-
-        <form className={styles.form} onSubmit={handleSubmit}>
-          <h3 className={styles.sectionTitle}>Dados de Cadastro</h3>
-
-          <div className={styles.inputGroup}>
-            <label>Descrição</label>
-            <input
-              name="descricao"
-              type="text"
-              placeholder="Ex: Integração ERP Protheus"
-              value={formData.descricao}
-              onChange={handleChange}
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div className={styles.formRow}>
-            <div className={styles.inputGroup} style={{ flex: 2 }}>
-              <label>CNPJ</label>
-              <input
-                name="cnpj"
-                type="text"
-                placeholder="00.000.000/0000-00"
-                value={formData.cnpj}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className={styles.inputGroup} style={{ flex: 1 }}>
-              <label>Máximo de Empresas</label>
-              <input
-                name="maxEmpresas"
-                type="number"
-                min="1"
-                value={formData.maxEmpresas}
-                onChange={handleChange}
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <h3 className={styles.sectionTitle}>Usuário de Integração</h3>
-
-          <div
-            className={styles.infoBox}
-            style={{ fontSize: "12px", color: "#666", marginBottom: "10px" }}
-          >
-            O login do usuário será gerado automaticamente com base no CNPJ.
-          </div>
-
-          <div className={styles.formRow}>
-            <div className={styles.inputGroup} style={{ flex: 1 }}>
-              <label>Senha</label>
-              <div className={styles.passwordWrapper}>
-                <input
-                  name="senhaGerada"
-                  type="text"
-                  placeholder="Senha"
-                  value={formData.senhaGerada}
-                  readOnly
-                  style={{ backgroundColor: "#f9f9f9", cursor: "default" }}
-                />
-                {formData.senhaGerada && (
-                  <button
-                    type="button"
-                    className={styles.copyButton}
-                    onClick={handleCopyPassword}
-                    title="Copiar Senha"
-                  >
-                    <FiCopy size={16} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className={styles.generateButton}
-              onClick={handleGeneratePassword}
-              disabled={loading}
-            >
-              Gerar <FiKey />
-            </button>
-          </div>
-
-          {error && (
-            <div
-              style={{
-                color: "red",
-                marginTop: 10,
-                fontSize: 14,
-                textAlign: "center",
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          <div className={styles.footer}>
-            <button
-              type="button"
-              className={styles.btnCancel}
-              onClick={onClose}
-              disabled={loading}
-            >
-              Cancelar
-            </button>
-            <button type="submit" className={styles.btnSave} disabled={loading}>
-              {loading ? "Salvando..." : "Salvar"} <FiCheck />
-            </button>
-          </div>
-        </form>
+        {renderHeader()}
+        {renderForm()}
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import styles from "./ModalVersaoMovix.module.css";
 import { FiX, FiCheck } from "react-icons/fi";
+import styles from "./ModalVersaoMovix.module.css";
 import usePostVersaoMovix, {
   VersaoMovixPayload,
 } from "@/app/src/hooks/VersaoMovix/usePostVersaoMovix";
@@ -29,9 +29,15 @@ export default function ModalVersaoMovix({
   idVersao,
   onSuccess,
 }: ModalVersaoMovixProps) {
+  //Declaração de todos os useStates
   const [formData, setFormData] = useState<VersaoMovixPayload>(INITIAL_DATA);
+
+  //Declaração de Funções e Lógica
   const { versao, loading: loadingGet } = useGetVersaoMovixById(idVersao);
   const { saveVersao, loading: loadingSave } = usePostVersaoMovix();
+
+  const isEditing = !!idVersao;
+  const isLoading = loadingGet || loadingSave;
 
   useEffect(() => {
     if (!isOpen) {
@@ -43,7 +49,7 @@ export default function ModalVersaoMovix({
     if (isOpen && idVersao && versao) {
       let plataformaNormalizada = "";
       if (versao.plataforma) {
-        const p = String(versao.plataforma).toUpperCase(); 
+        const p = String(versao.plataforma).toUpperCase();
         if (p === "ANDROID" || p === "1") plataformaNormalizada = "1";
         if (p === "IOS" || p === "2") plataformaNormalizada = "2";
       }
@@ -51,7 +57,7 @@ export default function ModalVersaoMovix({
       setFormData({
         codVersao: versao.codVersao,
         stringVersao: versao.stringVersao,
-        plataforma: plataformaNormalizada, 
+        plataforma: plataformaNormalizada,
         atualizacaoObrigatoria: versao.atualizacaoObrigatoria,
         changelog: versao.changelog || "",
       });
@@ -83,99 +89,105 @@ export default function ModalVersaoMovix({
     }
   };
 
-  if (!isOpen) return null;
+  //Declaração de Funções de renderização
+  const renderHeader = () => (
+    <div className={styles.header}>
+      <h2 className={styles.title}>
+        {isEditing ? "EDITAR VERSÃO MOVIX" : "NOVA VERSÃO MOVIX"}
+      </h2>
+      <button
+        className={styles.closeButton}
+        onClick={onClose}
+        disabled={isLoading}
+      >
+        <FiX />
+      </button>
+    </div>
+  );
 
-  const isEditing = !!idVersao;
-  const isLoading = loadingGet || loadingSave;
+  const renderForm = () => {
+    if (loadingGet) {
+      return (
+        <div style={{ textAlign: "center", padding: "20px" }}>
+          Carregando dados...
+        </div>
+      );
+    }
+
+    return (
+      <form onSubmit={handleSubmit} className={styles.formContent}>
+        <div className={styles.inputGroup}>
+          <label>Versão</label>
+          <input
+            type="text"
+            placeholder="X.X.X"
+            value={formData.stringVersao}
+            onChange={(e) => handleChange("stringVersao", e.target.value)}
+            required
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label>Plataforma</label>
+          <select
+            value={formData.plataforma}
+            onChange={(e) => handleChange("plataforma", e.target.value)}
+            required
+            disabled={isLoading}
+          >
+            <option value="">Selecione</option>
+            <option value="1">ANDROID</option>
+            <option value="2">IOS</option>
+          </select>
+        </div>
+
+        <div className={styles.toggleRow}>
+          <div className={styles.inputGroup}>
+            <label style={{ marginBottom: 0, fontWeight: 400 }}>
+              Forçar Atualização
+            </label>
+          </div>
+          <label className={styles.switch}>
+            <input
+              type="checkbox"
+              checked={formData.atualizacaoObrigatoria}
+              onChange={(e) =>
+                handleChange("atualizacaoObrigatoria", e.target.checked)
+              }
+              disabled={isLoading}
+            />
+            <span className={styles.slider}></span>
+          </label>
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label>Notas de Atualização</label>
+          <textarea
+            placeholder="Novidades..."
+            value={formData.changelog}
+            onChange={(e) => handleChange("changelog", e.target.value)}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div>
+          <button type="submit" className={styles.btnSave} disabled={isLoading}>
+            {loadingSave ? "Salvando..." : "Salvar"} <FiCheck />
+          </button>
+        </div>
+      </form>
+    );
+  };
+
+  //Return
+  if (!isOpen) return null;
 
   return (
     <div className={styles.overlay}>
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h2 className={styles.title}>
-            {isEditing ? "EDITAR VERSÃO MOVIX" : "NOVA VERSÃO MOVIX"}
-          </h2>
-          <button
-            className={styles.closeButton}
-            onClick={onClose}
-            disabled={isLoading}
-          >
-            <FiX />
-          </button>
-        </div>
-
-        {loadingGet ? (
-          <div style={{ textAlign: "center", padding: "20px" }}>
-            Carregando dados...
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className={styles.formContent}>
-            <div className={styles.inputGroup}>
-              <label>Versão</label>
-              <input
-                type="text"
-                placeholder="X.X.X"
-                value={formData.stringVersao}
-                onChange={(e) => handleChange("stringVersao", e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label>Plataforma</label>
-              <select
-                value={formData.plataforma}
-                onChange={(e) => handleChange("plataforma", e.target.value)}
-                required
-                disabled={isLoading}
-              >
-                <option value="">Selecione</option>
-                <option value="1">ANDROID</option>
-                <option value="2">IOS</option>
-              </select>
-            </div>
-
-            <div className={styles.toggleRow}>
-              <div className={styles.inputGroup}>
-                <label style={{ marginBottom: 0, fontWeight: 400 }}>
-                  Forçar Atualização
-                </label>
-              </div>
-              <label className={styles.switch}>
-                <input
-                  type="checkbox"
-                  checked={formData.atualizacaoObrigatoria}
-                  onChange={(e) =>
-                    handleChange("atualizacaoObrigatoria", e.target.checked)
-                  }
-                  disabled={isLoading}
-                />
-                <span className={styles.slider}></span>
-              </label>
-            </div>
-
-            <div className={styles.inputGroup}>
-              <label>Notas de Atualização</label>
-              <textarea
-                placeholder="Novidades..."
-                value={formData.changelog}
-                onChange={(e) => handleChange("changelog", e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div>
-              <button
-                type="submit"
-                className={styles.btnSave}
-                disabled={isLoading}
-              >
-                {loadingSave ? "Salvando..." : "Salvar"} <FiCheck />
-              </button>
-            </div>
-          </form>
-        )}
+        {renderHeader()}
+        {renderForm()}
       </div>
     </div>
   );

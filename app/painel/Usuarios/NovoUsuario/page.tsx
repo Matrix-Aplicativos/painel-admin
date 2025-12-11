@@ -2,22 +2,36 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { FiCheck, FiPlus, FiTrash2, FiEye, FiSlash } from "react-icons/fi";
 import styles from "./NovoUsuario.module.css";
 import tableStyles from "@/app/src/components/Tabelas.module.css";
-import { FiCheck, FiPlus, FiTrash2, FiEye, FiSlash } from "react-icons/fi";
 import PaginationControls from "@/app/src/components/PaginationControls";
-
-import usePostUsuario, {
-  UsuarioPayload,
-} from "@/app/src/hooks/Usuario/usePostUsuario";
-import useGetCargo, { CargoItem } from "@/app/src/hooks/Cargo/useGetCargo";
-
 import ModalNovoCargo from "@/app/src/components/modals/ModalNovoCargo";
 import ModalVincularEmpresa from "@/app/src/components/modals/ModalEmpresas";
+import usePostUsuario from "@/app/src/hooks/Usuario/usePostUsuario";
+import useGetCargo, { CargoItem } from "@/app/src/hooks/Cargo/useGetCargo";
 
 export default function NewUserPage() {
   const router = useRouter();
 
+  //Declaração de todos os useStates
+  const [formData, setFormData] = useState({
+    nome: "",
+    login: "",
+    email: "",
+    senha: "",
+    confirmSenha: "",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [empresasVinculadas, setEmpresasVinculadas] = useState<any[]>([]);
+  const [selectedCargos, setSelectedCargos] = useState<number[]>([]);
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [porPagina, setPorPagina] = useState(10);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
+
+  //Declaração de Funções e Lógica
   const { createUsuario, loading: loadingSave } = usePostUsuario();
 
   const {
@@ -30,26 +44,6 @@ export default function NewUserPage() {
     direction: "asc",
     orderBy: "nome",
   });
-  
-  const [formData, setFormData] = useState({
-    nome: "",
-    login: "",
-    email: "",
-    senha: "",
-    confirmSenha: "",
-  });
-
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const [empresasVinculadas, setEmpresasVinculadas] = useState<any[]>([]);
-  const [selectedCargos, setSelectedCargos] = useState<number[]>([]);
-
-  const [paginaAtual, setPaginaAtual] = useState(1);
-  const [porPagina, setPorPagina] = useState(10);
-
-  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
-  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
 
   const { cargosMovix, cargosFdv, cargosOutros } = useMemo(() => {
     const movix: CargoItem[] = [];
@@ -107,7 +101,6 @@ export default function NewUserPage() {
   };
 
   const handleSalvarUsuario = async () => {
-    // Validação Básica
     if (formData.senha !== formData.confirmSenha) {
       alert("As senhas não conferem!");
       return;
@@ -118,20 +111,18 @@ export default function NewUserPage() {
     }
 
     const payload: any = {
-      codUsuario: null, // Novo
+      codUsuario: null,
       nome: formData.nome,
       email: formData.email,
       login: formData.login,
-      senha: formData.senha, // Enviando senha
+      senha: formData.senha,
       primeiroAcesso: true,
       ativo: true,
-      cargos: selectedCargos, // Array de IDs
+      cargos: selectedCargos,
       empresas: empresasVinculadas.map((e) => ({
         codEmpresa: e.codEmpresa || e.id,
       })),
     };
-
-    console.log("Enviando Payload:", payload);
 
     const sucesso = await createUsuario(payload);
 
@@ -141,6 +132,7 @@ export default function NewUserPage() {
     }
   };
 
+  //Declaração de Funções de renderização
   const renderCargoList = (lista: CargoItem[]) => {
     if (lista.length === 0)
       return (
@@ -164,26 +156,8 @@ export default function NewUserPage() {
     ));
   };
 
-  return (
-    <div className={styles.container}>
-      <ModalNovoCargo
-        isOpen={isRoleModalOpen}
-        onClose={() => setIsRoleModalOpen(false)}
-        onSuccess={handleCargoCreated}
-      />
-
-      <ModalVincularEmpresa
-        isOpen={isCompanyModalOpen}
-        onClose={() => setIsCompanyModalOpen(false)}
-        onVincular={handleVincularEmpresa}
-      />
-
-      <div className={styles.header}>
-        <div className={styles.titleArea}>
-          <h1 className={styles.title}>NOVO USUÁRIO</h1>
-        </div>
-      </div>
-
+  const renderGeneralData = () => (
+    <>
       <div className={styles.sectionTitle}>Dados de Cadastro</div>
       <div className={styles.formGroup}>
         <div className={styles.inputRow}>
@@ -221,9 +195,67 @@ export default function NewUserPage() {
             />
           </div>
         </div>
-      </div>
 
-      {/* SEÇÃO CARGOS */}
+        <div className={styles.inputRow}>
+          <div className={styles.inputWrapper}>
+            <label>Senha *</label>
+            <div style={{ position: "relative" }}>
+              <input
+                name="senha"
+                type={showPassword ? "text" : "password"}
+                placeholder="Senha"
+                value={formData.senha}
+                onChange={handleInputChange}
+                style={{ width: "100%", paddingRight: "35px" }}
+              />
+              <div
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  cursor: "pointer",
+                  color: "#666",
+                }}
+              >
+                {showPassword ? <FiSlash /> : <FiEye />}
+              </div>
+            </div>
+          </div>
+          <div className={styles.inputWrapper}>
+            <label>Confirmar Senha *</label>
+            <div style={{ position: "relative" }}>
+              <input
+                name="confirmSenha"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Confirme a senha"
+                value={formData.confirmSenha}
+                onChange={handleInputChange}
+                style={{ width: "100%", paddingRight: "35px" }}
+              />
+              <div
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  cursor: "pointer",
+                  color: "#666",
+                }}
+              >
+                {showConfirmPassword ? <FiSlash /> : <FiEye />}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderRolesSection = () => (
+    <>
       <div className={styles.sectionTitle}>Cargos</div>
       <button
         className={styles.primaryButton}
@@ -250,91 +282,117 @@ export default function NewUserPage() {
           </div>
         </div>
       )}
+    </>
+  );
 
-      {/* SEÇÃO EMPRESAS */}
-      <div className={styles.companiesSection}>
-        <div className={styles.sectionTitle}>Empresas Vinculadas</div>
-        <button
-          className={styles.primaryButton}
-          onClick={() => setIsCompanyModalOpen(true)}
-        >
-          Vincular Empresa <FiPlus size={16} />
-        </button>
+  const renderCompaniesSection = () => (
+    <div className={styles.companiesSection}>
+      <div className={styles.sectionTitle}>Empresas Vinculadas</div>
+      <button
+        className={styles.primaryButton}
+        onClick={() => setIsCompanyModalOpen(true)}
+      >
+        Vincular Empresa <FiPlus size={16} />
+      </button>
 
-        <div className={styles.innerTableContainer}>
-          <div style={{ overflowX: "auto", width: "100%" }}>
-            <table className={tableStyles.table}>
-              <thead>
-                <tr>
-                  <th>Razão Social</th>
-                  <th>CNPJ</th>
-                  <th>Cidade</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {empresasVinculadas.length > 0 ? (
-                  empresasVinculadas.map((emp, index) => (
-                    <tr key={emp.id || index}>
-                      <td>{emp.razao || emp.razaoSocial}</td>
-                      <td>{emp.cnpj}</td>
-                      <td>
-                        {emp.cidade ||
-                          (emp.municipio
-                            ? `${emp.municipio.nome}-${emp.municipio.uf}`
-                            : "-")}
-                      </td>
-                      <td>
-                        <span
-                          className={`${tableStyles.statusBadge} ${tableStyles.statusCompleted}`}
-                        >
-                          ATIVO
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          className={
-                            styles.btnTableAction + " " + styles.btnRemover
-                          }
-                          onClick={() =>
-                            handleRemoverEmpresa(emp.id || emp.codEmpresa)
-                          }
-                        >
-                          Remover{" "}
-                          <FiTrash2 size={12} style={{ marginLeft: 4 }} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      style={{
-                        textAlign: "center",
-                        padding: "20px",
-                        color: "#999",
-                      }}
-                    >
-                      Nenhuma empresa vinculada.
+      <div className={styles.innerTableContainer}>
+        <div style={{ overflowX: "auto", width: "100%" }}>
+          <table className={tableStyles.table}>
+            <thead>
+              <tr>
+                <th>Razão Social</th>
+                <th>CNPJ</th>
+                <th>Cidade</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {empresasVinculadas.length > 0 ? (
+                empresasVinculadas.map((emp, index) => (
+                  <tr key={emp.id || index}>
+                    <td>{emp.razao || emp.razaoSocial}</td>
+                    <td>{emp.cnpj}</td>
+                    <td>
+                      {emp.cidade ||
+                        (emp.municipio
+                          ? `${emp.municipio.nome}-${emp.municipio.uf}`
+                          : "-")}
+                    </td>
+                    <td>
+                      <span
+                        className={`${tableStyles.statusBadge} ${tableStyles.statusCompleted}`}
+                      >
+                        ATIVO
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        className={`${styles.btnTableAction} ${styles.btnRemover}`}
+                        onClick={() =>
+                          handleRemoverEmpresa(emp.id || emp.codEmpresa)
+                        }
+                      >
+                        Remover
+                        <FiTrash2 size={12} style={{ marginLeft: 4 }} />
+                      </button>
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={5}
+                    style={{
+                      textAlign: "center",
+                      padding: "20px",
+                      color: "#999",
+                    }}
+                  >
+                    Nenhuma empresa vinculada.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-          <PaginationControls
-            paginaAtual={paginaAtual}
-            totalPaginas={1}
-            totalElementos={empresasVinculadas.length}
-            porPagina={porPagina}
-            onPageChange={setPaginaAtual}
-            onItemsPerPageChange={setPorPagina}
-          />
+        <PaginationControls
+          paginaAtual={paginaAtual}
+          totalPaginas={1}
+          totalElementos={empresasVinculadas.length}
+          porPagina={porPagina}
+          onPageChange={setPaginaAtual}
+          onItemsPerPageChange={setPorPagina}
+        />
+      </div>
+    </div>
+  );
+
+  //Return
+  return (
+    <div className={styles.container}>
+      <ModalNovoCargo
+        isOpen={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+        onSuccess={handleCargoCreated}
+      />
+
+      <ModalVincularEmpresa
+        isOpen={isCompanyModalOpen}
+        onClose={() => setIsCompanyModalOpen(false)}
+        onVincular={handleVincularEmpresa}
+      />
+
+      <div className={styles.header}>
+        <div className={styles.titleArea}>
+          <h1 className={styles.title}>NOVO USUÁRIO</h1>
         </div>
       </div>
+
+      {renderGeneralData()}
+      {renderRolesSection()}
+      {renderCompaniesSection()}
 
       <div className={styles.footer}>
         <button

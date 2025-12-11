@@ -5,22 +5,23 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Logo from "@/app/img/Logo.png";
-
-import "./Login.css";
 import { useAuth } from "./src/hooks/useAuth";
+import "./Login.css";
 
 export default function LoginPage() {
+  //Declaração de Hooks Externos
   const { login: loginAuth } = useAuth();
   const router = useRouter();
 
+  //Declaração de todos os useStates
   const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
-
   const [textoIdentificacao, setTextoIdentificacao] = useState("");
   const [tipoMensagem, setTipoMensagem] = useState<"sucesso" | "erro" | "">("");
   const [loading, setLoading] = useState(false);
 
+  //Declaração de Funções e Lógica
   useEffect(() => {
     if (!textoIdentificacao) return;
     const timer = setTimeout(() => {
@@ -55,6 +56,24 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  //Declaração de Funções de renderização
+  const renderMensagem = () => {
+    if (!textoIdentificacao) return null;
+    return (
+      <p
+        style={{
+          textAlign: "center",
+          margin: "10px 0",
+          color: tipoMensagem === "sucesso" ? "green" : "red",
+          fontWeight: "bold",
+        }}
+      >
+        {textoIdentificacao}
+      </p>
+    );
+  };
+
+  //Return
   return (
     <div className="container">
       <div className="content">
@@ -103,18 +122,7 @@ export default function LoginPage() {
             </span>
           </div>
 
-          {textoIdentificacao && (
-            <p
-              style={{
-                textAlign: "center",
-                margin: "10px 0",
-                color: tipoMensagem === "sucesso" ? "green" : "red",
-                fontWeight: "bold",
-              }}
-            >
-              {textoIdentificacao}
-            </p>
-          )}
+          {renderMensagem()}
 
           <div style={{ display: "flex", gap: "10px", marginTop: "7px" }}>
             <button

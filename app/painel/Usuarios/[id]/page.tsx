@@ -1,7 +1,7 @@
 "use client";
 
-import styles from "../DetalhesUsuario.module.css";
-import tableStyles from "@/app/src/components/Tabelas.module.css";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, useRouter } from "next/navigation";
 import {
   FiEdit2,
   FiTrash2,
@@ -11,24 +11,35 @@ import {
   FiPlus,
   FiX,
 } from "react-icons/fi";
-import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect, useMemo } from "react";
+import styles from "../DetalhesUsuario.module.css";
+import tableStyles from "@/app/src/components/Tabelas.module.css";
 import PaginationControls from "@/app/src/components/PaginationControls";
-
-// Hooks
+import ModalNovoCargo from "@/app/src/components/modals/ModalNovoCargo";
+import ModalNovoFuncionario from "@/app/src/components/modals/ModalNovoFuncionario";
+import ModalVincularEmpresa from "@/app/src/components/modals/ModalEmpresas";
 import useGetUsuarioById, {
   UsuarioDetalhe,
 } from "@/app/src/hooks/Usuario/useGetUsuarioById";
 import useDeleteUsuario from "@/app/src/hooks/Usuario/useDeleteUsuario";
-import usePostUsuario from "@/app/src/hooks/Usuario/usePostUsuario"; // Usando POST para salvar (ajuste se tiver PUT)
-import usePostResetarSenha from "@/app/src/hooks/Usuario/usePostResetarSenha"; // Hook de Reset
+import usePostUsuario from "@/app/src/hooks/Usuario/usePostUsuario";
+import usePostResetarSenha from "@/app/src/hooks/Usuario/usePostResetarSenha";
 import useGetCargo, { CargoItem } from "@/app/src/hooks/Cargo/useGetCargo";
 
-import ModalNovoCargo from "@/app/src/components/modals/ModalNovoCargo";
-import ModalNovoFuncionario from "@/app/src/components/modals/ModalNovoFuncionario";
-import ModalVincularEmpresa from "@/app/src/components/modals/ModalEmpresas";
-
 export default function UserDetailsPage() {
+  //Declaração de todos os useStates
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<Partial<UsuarioDetalhe>>({});
+  const [selectedCargos, setSelectedCargos] = useState<number[]>([]);
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [porPagina, setPorPagina] = useState(20);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
+  const [isFuncionarioModalOpen, setIsFuncionarioModalOpen] = useState(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | string>(
+    ""
+  );
+
+  //Declaração de Funções e Lógica
   const params = useParams();
   const router = useRouter();
   const id = Number(params.id);
@@ -48,21 +59,6 @@ export default function UserDetailsPage() {
     direction: "asc",
     orderBy: "nome",
   });
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Partial<UsuarioDetalhe>>({});
-
-  const [selectedCargos, setSelectedCargos] = useState<number[]>([]);
-
-  const [paginaAtual, setPaginaAtual] = useState(1);
-  const [porPagina, setPorPagina] = useState(20);
-
-  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
-  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
-  const [isFuncionarioModalOpen, setIsFuncionarioModalOpen] = useState(false);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<number | string>(
-    ""
-  );
 
   useEffect(() => {
     if (usuario) {
@@ -223,26 +219,14 @@ export default function UserDetailsPage() {
     setIsFuncionarioModalOpen(false);
   };
 
-  if (loading)
-    return (
-      <div className={styles.container}>
-        <p>Carregando dados...</p>
-      </div>
-    );
-  if (error || !usuario)
-    return (
-      <div className={styles.container}>
-        <p>Erro ao carregar usuário.</p>
-      </div>
-    );
-
-  const listaEmpresas = usuario.empresas || [];
+  const listaEmpresas = usuario?.empresas || [];
   const totalEmpresas = listaEmpresas.length;
   const empresasPaginadas = listaEmpresas.slice(
     (paginaAtual - 1) * porPagina,
     paginaAtual * porPagina
   );
 
+  //Declaração de Funções de renderização
   const renderCargoList = (lista: CargoItem[]) => {
     if (lista.length === 0)
       return (
@@ -268,78 +252,63 @@ export default function UserDetailsPage() {
     ));
   };
 
-  return (
-    <div className={styles.container}>
-      <ModalNovoCargo
-        isOpen={isRoleModalOpen}
-        onClose={() => setIsRoleModalOpen(false)}
-        onSuccess={handleCargoCreated}
-      />
-      <ModalVincularEmpresa
-        isOpen={isCompanyModalOpen}
-        onClose={() => setIsCompanyModalOpen(false)}
-        onVincular={handleVincularEmpresa}
-      />
-      <ModalNovoFuncionario
-        isOpen={isFuncionarioModalOpen}
-        onClose={() => setIsFuncionarioModalOpen(false)}
-        onSave={handleSaveFuncionario}
-        empresaId={selectedCompanyId}
-      />
-
-      <div className={styles.header}>
-        <div className={styles.titleArea}>
-          <h1 className={styles.title}>{usuario.nome?.toUpperCase()}</h1>
-          <span
-            className={`${styles.statusBadge} ${
-              usuario.ativo
-                ? tableStyles.statusCompleted
-                : tableStyles.statusNotStarted
-            }`}
-          >
-            {usuario.ativo ? "ATIVO" : "INATIVO"}
-          </span>
-        </div>
-
-        <div className={styles.headerButtons}>
-          {!isEditing ? (
-            <div className={styles.buttonRow}>
-              <button
-                className={`${styles.btn} ${styles.btnBlue}`}
-                onClick={handleEditar}
-                disabled={loadingDelete}
-              >
-                Editar <FiEdit2 />
-              </button>
-              <button
-                className={`${styles.btn} ${styles.btnRed}`}
-                onClick={handleExcluir}
-                disabled={loadingDelete}
-              >
-                {loadingDelete ? "Excluindo..." : "Excluir"} <FiTrash2 />
-              </button>
-            </div>
-          ) : (
-            <div className={styles.buttonRow}>
-              <button
-                className={`${styles.btn} ${styles.btnGreen}`}
-                onClick={handleSalvarEdicao}
-                disabled={loadingSave}
-              >
-                Salvar <FiCheck />
-              </button>
-              <button
-                className={`${styles.btn} ${styles.btnRed}`}
-                onClick={handleCancelarEdicao}
-                disabled={loadingSave}
-              >
-                Cancelar <FiX />
-              </button>
-            </div>
-          )}
-        </div>
+  const renderHeader = () => (
+    <div className={styles.header}>
+      <div className={styles.titleArea}>
+        <h1 className={styles.title}>{usuario?.nome?.toUpperCase()}</h1>
+        <span
+          className={`${styles.statusBadge} ${
+            usuario?.ativo
+              ? tableStyles.statusCompleted
+              : tableStyles.statusNotStarted
+          }`}
+        >
+          {usuario?.ativo ? "ATIVO" : "INATIVO"}
+        </span>
       </div>
 
+      <div className={styles.headerButtons}>
+        {!isEditing ? (
+          <div className={styles.buttonRow}>
+            <button
+              className={`${styles.btn} ${styles.btnBlue}`}
+              onClick={handleEditar}
+              disabled={loadingDelete}
+            >
+              Editar <FiEdit2 />
+            </button>
+            <button
+              className={`${styles.btn} ${styles.btnRed}`}
+              onClick={handleExcluir}
+              disabled={loadingDelete}
+            >
+              {loadingDelete ? "Excluindo..." : "Excluir"} <FiTrash2 />
+            </button>
+          </div>
+        ) : (
+          <div className={styles.buttonRow}>
+            <button
+              className={`${styles.btn} ${styles.btnGreen}`}
+              onClick={handleSalvarEdicao}
+              disabled={loadingSave}
+            >
+              Salvar <FiCheck />
+            </button>
+            <button
+              className={`${styles.btn} ${styles.btnRed}`}
+              onClick={handleCancelarEdicao}
+              disabled={loadingSave}
+            >
+              Cancelar <FiX />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderUserData = () => (
+    <>
       <div className={styles.sectionTitle}>Dados de Cadastro</div>
       <div className={styles.formGroup}>
         <div className={styles.inputRow}>
@@ -386,18 +355,22 @@ export default function UserDetailsPage() {
 
             <button
               className={`${styles.btn} ${
-                usuario.ativo ? styles.btnRed : styles.btnGreen
+                usuario?.ativo ? styles.btnRed : styles.btnGreen
               }`}
               style={{ height: "38px" }}
               disabled={isEditing || loadingSave}
               onClick={handleToggleAtivo}
             >
-              {usuario.ativo ? "Desativar" : "Ativar"} <FiAlertCircle />
+              {usuario?.ativo ? "Desativar" : "Ativar"} <FiAlertCircle />
             </button>
           </div>
         </div>
       </div>
+    </>
+  );
 
+  const renderRoles = () => (
+    <>
       <div className={styles.sectionTitle}>Cargos</div>
       <button
         className={styles.primaryButton}
@@ -427,90 +400,131 @@ export default function UserDetailsPage() {
           </div>
         </div>
       )}
+    </>
+  );
 
-      <div className={styles.companiesSection}>
-        <div className={styles.sectionTitle}>Empresas Vinculadas</div>
-        <button
-          className={styles.primaryButton}
-          onClick={() => setIsCompanyModalOpen(true)}
-          disabled={isEditing}
-        >
-          Vincular Empresa <FiPlus size={16} />
-        </button>
+  const renderCompanies = () => (
+    <div className={styles.companiesSection}>
+      <div className={styles.sectionTitle}>Empresas Vinculadas</div>
+      <button
+        className={styles.primaryButton}
+        onClick={() => setIsCompanyModalOpen(true)}
+        disabled={isEditing}
+      >
+        Vincular Empresa <FiPlus size={16} />
+      </button>
 
-        <div className={styles.innerTableContainer}>
-          <div style={{ overflowX: "auto", width: "100%" }}>
-            <table className={tableStyles.table}>
-              <thead>
-                <tr>
-                  <th>Razão Social</th>
-                  <th>CNPJ</th>
-                  <th>Cidade</th>
-                  <th>Status</th>
-                  <th>Ações</th>
+      <div className={styles.innerTableContainer}>
+        <div style={{ overflowX: "auto", width: "100%" }}>
+          <table className={tableStyles.table}>
+            <thead>
+              <tr>
+                <th>Razão Social</th>
+                <th>CNPJ</th>
+                <th>Cidade</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {empresasPaginadas.map((emp) => (
+                <tr key={emp.codEmpresa}>
+                  <td>{emp.razaoSocial}</td>
+                  <td>{emp.cnpj}</td>
+                  <td>
+                    {emp.municipio?.nome} - {emp.municipio?.uf}
+                  </td>
+                  <td>
+                    <span
+                      className={`${tableStyles.statusBadge} ${
+                        emp.ativo
+                          ? tableStyles.statusCompleted
+                          : tableStyles.statusNotStarted
+                      }`}
+                    >
+                      {emp.ativo ? "ATIVO" : "INATIVO"}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      className={`${styles.btnTableAction} ${styles.btnFuncionario}`}
+                      onClick={() => handleOpenFuncionarioModal(emp.codEmpresa)}
+                      disabled={isEditing}
+                    >
+                      Cadastro de Funcionário
+                    </button>
+
+                    <button
+                      className={`${styles.btnTableAction} ${styles.btnRemover}`}
+                      onClick={() => alert("Implementar desvínculo")}
+                      disabled={isEditing}
+                    >
+                      Remover
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {empresasPaginadas.map((emp) => (
-                  <tr key={emp.codEmpresa}>
-                    <td>{emp.razaoSocial}</td>
-                    <td>{emp.cnpj}</td>
-                    <td>
-                      {emp.municipio?.nome} - {emp.municipio?.uf}
-                    </td>
-                    <td>
-                      <span
-                        className={`${tableStyles.statusBadge} ${
-                          emp.ativo
-                            ? tableStyles.statusCompleted
-                            : tableStyles.statusNotStarted
-                        }`}
-                      >
-                        {emp.ativo ? "ATIVO" : "INATIVO"}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        className={`${styles.btnTableAction} ${styles.btnFuncionario}`}
-                        onClick={() =>
-                          handleOpenFuncionarioModal(emp.codEmpresa)
-                        }
-                        disabled={isEditing}
-                      >
-                        Cadastro de Funcionário
-                      </button>
-
-                      <button
-                        className={`${styles.btnTableAction} ${styles.btnRemover}`}
-                        onClick={() => alert("Implementar desvínculo")}
-                        disabled={isEditing}
-                      >
-                        Remover
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {empresasPaginadas.length === 0 && (
-                  <tr>
-                    <td colSpan={5} style={{ textAlign: "center" }}>
-                      Nenhuma empresa vinculada.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <PaginationControls
-            paginaAtual={paginaAtual}
-            totalPaginas={Math.ceil(totalEmpresas / porPagina) || 1}
-            totalElementos={totalEmpresas}
-            porPagina={porPagina}
-            onPageChange={setPaginaAtual}
-            onItemsPerPageChange={setPorPagina}
-          />
+              ))}
+              {empresasPaginadas.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: "center" }}>
+                    Nenhuma empresa vinculada.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
+
+        <PaginationControls
+          paginaAtual={paginaAtual}
+          totalPaginas={Math.ceil(totalEmpresas / porPagina) || 1}
+          totalElementos={totalEmpresas}
+          porPagina={porPagina}
+          onPageChange={setPaginaAtual}
+          onItemsPerPageChange={setPorPagina}
+        />
       </div>
+    </div>
+  );
+
+  //Return
+  if (loading)
+    return (
+      <div className={styles.container}>
+        <p>Carregando dados...</p>
+      </div>
+    );
+
+  if (error || !usuario)
+    return (
+      <div className={styles.container}>
+        <p>Erro ao carregar usuário.</p>
+      </div>
+    );
+
+  return (
+    <div className={styles.container}>
+      <ModalNovoCargo
+        isOpen={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+        onSuccess={handleCargoCreated}
+      />
+      <ModalVincularEmpresa
+        isOpen={isCompanyModalOpen}
+        onClose={() => setIsCompanyModalOpen(false)}
+        onVincular={handleVincularEmpresa}
+      />
+      <ModalNovoFuncionario
+        isOpen={isFuncionarioModalOpen}
+        onClose={() => setIsFuncionarioModalOpen(false)}
+        onSave={handleSaveFuncionario}
+        empresaId={selectedCompanyId}
+      />
+
+      {renderHeader()}
+      {renderUserData()}
+      {renderRoles()}
+      {renderCompanies()}
     </div>
   );
 }

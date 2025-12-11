@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import styles from "./ModalNovoCargo.module.css";
 import { FiX, FiCheck } from "react-icons/fi";
+import styles from "./ModalNovoCargo.module.css";
 import useGetPermissao, {
   PermissaoItem,
 } from "@/app/src/hooks/Permissao/useGetPermissao";
@@ -11,7 +11,7 @@ import usePostCargo from "@/app/src/hooks/Cargo/usePostCargo";
 interface ModalNovoCargoProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void; // Alterado de onSave para onSuccess
+  onSuccess: () => void;
 }
 
 export default function ModalNovoCargo({
@@ -19,12 +19,13 @@ export default function ModalNovoCargo({
   onClose,
   onSuccess,
 }: ModalNovoCargoProps) {
+  //Declaração de todos os useStates
   const [nomeCargo, setNomeCargo] = useState("");
   const [permissoesSelecionadas, setPermissoesSelecionadas] = useState<
     number[]
   >([]);
 
-  // Hook de GET Permissões (Busca todas)
+  //Declaração de Funções e Lógica
   const { permissoes, loading: loadingPermissoes } = useGetPermissao({
     pagina: 1,
     porPagina: 100,
@@ -32,19 +33,15 @@ export default function ModalNovoCargo({
     direction: "asc",
   });
 
-  // Hook de POST Cargo (Salvar)
   const { createCargo, loading: saving } = usePostCargo();
 
-  // Limpa o form ao abrir
   useEffect(() => {
     if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setNomeCargo("");
       setPermissoesSelecionadas([]);
     }
   }, [isOpen]);
 
-  // Agrupamento de Permissões
   const { permsMovix, permsFdv, permsOutros } = useMemo(() => {
     const movix: PermissaoItem[] = [];
     const fdv: PermissaoItem[] = [];
@@ -81,19 +78,30 @@ export default function ModalNovoCargo({
       return;
     }
 
-    // Chama a API para criar o cargo
     const sucesso = await createCargo({
       nome: nomeCargo,
       permissoes: permissoesSelecionadas,
     });
 
     if (sucesso) {
-      onSuccess(); // Avisa o pai que deu certo (para dar refresh na lista se necessário)
-      onClose(); // Fecha o modal
+      onSuccess();
+      onClose();
     }
   };
 
-  if (!isOpen) return null;
+  //Declaração de Funções de renderização
+  const renderHeader = () => (
+    <div className={styles.header}>
+      <h2 className={styles.title}>NOVO CARGO</h2>
+      <button
+        className={styles.closeButton}
+        onClick={onClose}
+        disabled={saving}
+      >
+        <FiX />
+      </button>
+    </div>
+  );
 
   const renderPermissaoList = (lista: PermissaoItem[]) => {
     if (lista.length === 0)
@@ -113,7 +121,7 @@ export default function ModalNovoCargo({
           type="checkbox"
           checked={permissoesSelecionadas.includes(perm.codPermissao)}
           onChange={() => handleCheckboxChange(perm.codPermissao)}
-          disabled={saving} // Desabilita durante o salvamento
+          disabled={saving}
         />
         {perm.nome
           .replace("PERM_", "")
@@ -124,74 +132,71 @@ export default function ModalNovoCargo({
     ));
   };
 
+  const renderForm = () => (
+    <form className={styles.form} onSubmit={handleSubmit}>
+      <div className={styles.inputGroup}>
+        <label>Nome do Cargo</label>
+        <input
+          type="text"
+          placeholder="Ex: Supervisor de Vendas"
+          value={nomeCargo}
+          onChange={(e) => setNomeCargo(e.target.value)}
+          required
+          disabled={saving}
+        />
+      </div>
+
+      <div className={styles.permissionsTitle}>Permissões</div>
+
+      {loadingPermissoes ? (
+        <p style={{ textAlign: "center", color: "#666" }}>
+          Carregando permissões...
+        </p>
+      ) : (
+        <div className={styles.rolesContainer}>
+          <div className={styles.roleColumn}>
+            <div className={styles.roleHeader}>Movix</div>
+            {renderPermissaoList(permsMovix)}
+          </div>
+
+          <div className={styles.roleColumn}>
+            <div className={styles.roleHeader}>Força de Vendas</div>
+            {renderPermissaoList(permsFdv)}
+          </div>
+
+          {permsOutros.length > 0 && (
+            <div className={styles.roleColumn}>
+              <div className={styles.roleHeader}>Outros</div>
+              {renderPermissaoList(permsOutros)}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className={styles.footer}>
+        <button
+          type="button"
+          className={styles.btnCancel}
+          onClick={onClose}
+          disabled={saving}
+        >
+          Cancelar
+        </button>
+        <button type="submit" className={styles.btnSave} disabled={saving}>
+          {saving ? "Salvando..." : "Salvar"} <FiCheck />
+        </button>
+      </div>
+    </form>
+  );
+
+  //Return
+  if (!isOpen) return null;
+
   return (
     <div className={styles.overlay}>
       <div className={styles.container}>
-        <div className={styles.header}>
-          <h2 className={styles.title}>NOVO CARGO</h2>
-          <button
-            className={styles.closeButton}
-            onClick={onClose}
-            disabled={saving}
-          >
-            <FiX />
-          </button>
-        </div>
-
-        <form className={styles.form} onSubmit={handleSubmit}>
-          <div className={styles.inputGroup}>
-            <label>Nome do Cargo</label>
-            <input
-              type="text"
-              placeholder="Ex: Supervisor de Vendas"
-              value={nomeCargo}
-              onChange={(e) => setNomeCargo(e.target.value)}
-              required
-              disabled={saving}
-            />
-          </div>
-
-          <div className={styles.permissionsTitle}>Permissões</div>
-
-          {loadingPermissoes ? (
-            <p style={{ textAlign: "center", color: "#666" }}>
-              Carregando permissões...
-            </p>
-          ) : (
-            <div className={styles.rolesContainer}>
-              <div className={styles.roleColumn}>
-                <div className={styles.roleHeader}>Movix</div>
-                {renderPermissaoList(permsMovix)}
-              </div>
-
-              <div className={styles.roleColumn}>
-                <div className={styles.roleHeader}>Força de Vendas</div>
-                {renderPermissaoList(permsFdv)}
-              </div>
-
-              {permsOutros.length > 0 && (
-                <div className={styles.roleColumn}>
-                  <div className={styles.roleHeader}>Outros</div>
-                  {renderPermissaoList(permsOutros)}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className={styles.footer}>
-            <button
-              type="button"
-              className={styles.btnCancel}
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancelar
-            </button>
-            <button type="submit" className={styles.btnSave} disabled={saving}>
-              {saving ? "Salvando..." : "Salvar"} <FiCheck />
-            </button>
-          </div>
-        </form>
+        {renderHeader()}
+        {renderForm()}
       </div>
     </div>
   );
