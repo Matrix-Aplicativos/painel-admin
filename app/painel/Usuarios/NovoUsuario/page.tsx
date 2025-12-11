@@ -20,13 +20,17 @@ export default function NewUserPage() {
 
   const { createUsuario, loading: loadingSave } = usePostUsuario();
 
-  const { cargos, loading: loadingCargos } = useGetCargo({
+  const {
+    cargos,
+    loading: loadingCargos,
+    refetch: refetchCargos,
+  } = useGetCargo({
     pagina: 1,
     porPagina: 100,
-    orderBy: "nome",
     direction: "asc",
+    orderBy: "nome",
   });
-
+  
   const [formData, setFormData] = useState({
     nome: "",
     login: "",
@@ -80,9 +84,9 @@ export default function NewUserPage() {
     });
   };
 
-  const handleSaveRole = (cargo: any) => {
-    console.log("Cargo criado (mock):", cargo);
+  const handleCargoCreated = () => {
     setIsRoleModalOpen(false);
+    refetchCargos();
   };
 
   const handleVincularEmpresa = (empresa: any) => {
@@ -114,7 +118,7 @@ export default function NewUserPage() {
     }
 
     const payload: any = {
-      codUsuario: 0, // Novo
+      codUsuario: null, // Novo
       nome: formData.nome,
       email: formData.email,
       login: formData.login,
@@ -124,7 +128,7 @@ export default function NewUserPage() {
       cargos: selectedCargos, // Array de IDs
       empresas: empresasVinculadas.map((e) => ({
         codEmpresa: e.codEmpresa || e.id,
-      })), 
+      })),
     };
 
     console.log("Enviando Payload:", payload);
@@ -165,7 +169,7 @@ export default function NewUserPage() {
       <ModalNovoCargo
         isOpen={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
-        onSave={handleSaveRole}
+        onSuccess={handleCargoCreated}
       />
 
       <ModalVincularEmpresa
@@ -215,46 +219,6 @@ export default function NewUserPage() {
               value={formData.email}
               onChange={handleInputChange}
             />
-          </div>
-        </div>
-
-        <div className={styles.inputRow}>
-          <div className={styles.inputWrapper}>
-            <label>Senha *</label>
-            <div className={styles.inputWrapperRelative}>
-              <input
-                name="senha"
-                type={showPassword ? "text" : "password"}
-                placeholder="******"
-                value={formData.senha}
-                onChange={handleInputChange}
-              />
-              <div
-                className={styles.eyeIcon}
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <FiSlash /> : <FiEye />}
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.inputWrapper}>
-            <label>Confirmar Senha *</label>
-            <div className={styles.inputWrapperRelative}>
-              <input
-                name="confirmSenha"
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="******"
-                value={formData.confirmSenha}
-                onChange={handleInputChange}
-              />
-              <div
-                className={styles.eyeIcon}
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                {showConfirmPassword ? <FiSlash /> : <FiEye />}
-              </div>
-            </div>
           </div>
         </div>
       </div>

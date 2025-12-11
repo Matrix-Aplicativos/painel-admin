@@ -3,7 +3,7 @@
   padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px; 
+  gap: 10px;
   height: auto;
   min-height: 100%;
   overflow: visible;
@@ -42,7 +42,7 @@
 }
 .statusInactive {
   background-color: #ffebee;
-  color: #d7072c; 
+  color: #d7072c;
 }
 
 .headerButtons {
@@ -56,7 +56,7 @@
 }
 
 .btn {
-  padding: 6px 16px; 
+  padding: 6px 16px;
   border-radius: 4px;
   font-weight: 400;
   font-size: 13px;
@@ -99,7 +99,7 @@
   flex-direction: column;
   gap: 10px;
   max-width: 900px;
-} 
+}
 .inputRow {
   display: flex;
   gap: 15px;
@@ -127,6 +127,28 @@
 }
 .inputWrapper input:focus {
   border-color: #1769e3;
+}
+.inputWithIcon {
+  position: relative;
+  width: 90%;
+}
+
+.inputWithIcon input {
+  width: 90%;
+  padding-right: 35px; /* Espaço para o ícone */
+}
+
+.searchIcon {
+  position: absolute;
+  right: -15px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #666;
+}
+
+.searchIcon:hover {
+  color: #1769e3;
 }
 
 .togglesRow {
@@ -187,7 +209,7 @@ input:checked + .slider:before {
 
 .configSection {
   margin-top: 5px;
-} 
+}
 
 .configFilters {
   display: flex;
@@ -197,7 +219,7 @@ input:checked + .slider:before {
 }
 .configFilters .btn {
   height: 35px;
-} 
+}
 
 .innerTableContainer {
   width: 100%;

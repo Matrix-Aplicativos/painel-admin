@@ -6,32 +6,34 @@ import { FiX, FiCheck } from "react-icons/fi";
 import useGetPermissao, {
   PermissaoItem,
 } from "@/app/src/hooks/Permissao/useGetPermissao";
+import usePostCargo from "@/app/src/hooks/Cargo/usePostCargo";
 
 interface ModalNovoCargoProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (cargo: { nome: string; permissoes: number[] }) => void;
+  onSuccess: () => void; // Alterado de onSave para onSuccess
 }
 
 export default function ModalNovoCargo({
   isOpen,
   onClose,
-  onSave,
+  onSuccess,
 }: ModalNovoCargoProps) {
   const [nomeCargo, setNomeCargo] = useState("");
-
-  // Guardaremos os IDs das permissões selecionadas
   const [permissoesSelecionadas, setPermissoesSelecionadas] = useState<
     number[]
   >([]);
 
-  // Hook de Permissões (Busca todas para exibir)
-  const { permissoes, loading } = useGetPermissao({
+  // Hook de GET Permissões (Busca todas)
+  const { permissoes, loading: loadingPermissoes } = useGetPermissao({
     pagina: 1,
-    porPagina: 100, // Traz todas
+    porPagina: 100,
     orderBy: "nome",
     direction: "asc",
   });
+
+  // Hook de POST Cargo (Salvar)
+  const { createCargo, loading: saving } = usePostCargo();
 
   // Limpa o form ao abrir
   useEffect(() => {
@@ -42,6 +44,7 @@ export default function ModalNovoCargo({
     }
   }, [isOpen]);
 
+  // Agrupamento de Permissões
   const { permsMovix, permsFdv, permsOutros } = useMemo(() => {
     const movix: PermissaoItem[] = [];
     const fdv: PermissaoItem[] = [];
@@ -61,8 +64,6 @@ export default function ModalNovoCargo({
     return { permsMovix: movix, permsFdv: fdv, permsOutros: outros };
   }, [permissoes]);
 
-  if (!isOpen) return null;
-
   const handleCheckboxChange = (codPermissao: number) => {
     setPermissoesSelecionadas((prev) => {
       if (prev.includes(codPermissao)) {
@@ -73,14 +74,26 @@ export default function ModalNovoCargo({
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nomeCargo) {
       alert("Preencha o nome do cargo.");
       return;
     }
-    onSave({ nome: nomeCargo, permissoes: permissoesSelecionadas });
+
+    // Chama a API para criar o cargo
+    const sucesso = await createCargo({
+      nome: nomeCargo,
+      permissoes: permissoesSelecionadas,
+    });
+
+    if (sucesso) {
+      onSuccess(); // Avisa o pai que deu certo (para dar refresh na lista se necessário)
+      onClose(); // Fecha o modal
+    }
   };
+
+  if (!isOpen) return null;
 
   const renderPermissaoList = (lista: PermissaoItem[]) => {
     if (lista.length === 0)
@@ -100,6 +113,7 @@ export default function ModalNovoCargo({
           type="checkbox"
           checked={permissoesSelecionadas.includes(perm.codPermissao)}
           onChange={() => handleCheckboxChange(perm.codPermissao)}
+          disabled={saving} // Desabilita durante o salvamento
         />
         {perm.nome
           .replace("PERM_", "")
@@ -115,7 +129,11 @@ export default function ModalNovoCargo({
       <div className={styles.container}>
         <div className={styles.header}>
           <h2 className={styles.title}>NOVO CARGO</h2>
-          <button className={styles.closeButton} onClick={onClose}>
+          <button
+            className={styles.closeButton}
+            onClick={onClose}
+            disabled={saving}
+          >
             <FiX />
           </button>
         </div>
@@ -129,12 +147,13 @@ export default function ModalNovoCargo({
               value={nomeCargo}
               onChange={(e) => setNomeCargo(e.target.value)}
               required
+              disabled={saving}
             />
           </div>
 
           <div className={styles.permissionsTitle}>Permissões</div>
 
-          {loading ? (
+          {loadingPermissoes ? (
             <p style={{ textAlign: "center", color: "#666" }}>
               Carregando permissões...
             </p>
@@ -149,6 +168,7 @@ export default function ModalNovoCargo({
                 <div className={styles.roleHeader}>Força de Vendas</div>
                 {renderPermissaoList(permsFdv)}
               </div>
+
               {permsOutros.length > 0 && (
                 <div className={styles.roleColumn}>
                   <div className={styles.roleHeader}>Outros</div>
@@ -163,11 +183,12 @@ export default function ModalNovoCargo({
               type="button"
               className={styles.btnCancel}
               onClick={onClose}
+              disabled={saving}
             >
               Cancelar
             </button>
-            <button type="submit" className={styles.btnSave}>
-              Salvar <FiCheck />
+            <button type="submit" className={styles.btnSave} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar"} <FiCheck />
             </button>
           </div>
         </form>

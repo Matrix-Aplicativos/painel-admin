@@ -5,11 +5,15 @@ import styles from "@/app/src/components/Tabelas.module.css";
 import { FiPlus, FiSearch } from "react-icons/fi";
 import PaginationControls from "@/app/src/components/PaginationControls";
 import useGetVersaoMovix from "@/app/src/hooks/VersaoMovix/useGetVersaoMovix";
-import ModalVersaoMovix from "@/app/src/components/modals/ModalVersaoMovix"; 
+import ModalVersaoMovix from "@/app/src/components/modals/ModalVersaoMovix";
 
 export default function VersaoMovixPage() {
   const [buscaVersao, setBuscaVersao] = useState("");
   const [buscaPlataforma, setBuscaPlataforma] = useState("");
+
+  const [filtroVersao, setFiltroVersao] = useState("");
+  const [filtroPlataforma, setFiltroPlataforma] = useState("");
+
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
 
@@ -19,8 +23,8 @@ export default function VersaoMovixPage() {
   const { versoes, pagination, loading, error, refetch } = useGetVersaoMovix({
     pagina: paginaAtual,
     porPagina: porPagina,
-    versao: buscaVersao,
-    plataforma: buscaPlataforma,
+    versao: filtroVersao, 
+    plataforma: filtroPlataforma, 
     orderBy: "dataCadastro",
     direction: "desc",
   });
@@ -37,11 +41,13 @@ export default function VersaoMovixPage() {
 
   const handleSearch = () => {
     setPaginaAtual(1);
-    refetch();
+    setFiltroVersao(buscaVersao);
+    setFiltroPlataforma(buscaPlataforma);
+    setTimeout(() => refetch(), 0);
   };
 
   const handleSuccess = () => {
-    refetch(); 
+    refetch();
   };
 
   const formatData = (dataIso: string) => {

@@ -2,23 +2,30 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "@/app/src/components/Tabelas.module.css";
-import { FiPlus } from "react-icons/fi";
-import SearchBar from "@/app/src/components/SearchBar";
+import { FiPlus, FiSearch } from "react-icons/fi";
 import PaginationControls from "@/app/src/components/PaginationControls";
 import useGetUsuario from "@/app/src/hooks/Usuario/useGetUsuario";
 
 export default function UsuariosPage() {
   const router = useRouter();
 
-  // Estados
-  const [busca, setBusca] = useState("");
+  // Estados dos Inputs (O que o usuário digita)
+  const [buscaNome, setBuscaNome] = useState("");
+  const [buscaLogin, setBuscaLogin] = useState("");
+
+  // Estados dos Filtros (O que vai para o Hook)
+  const [filtroNome, setFiltroNome] = useState("");
+  const [filtroLogin, setFiltroLogin] = useState("");
+
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
 
+  // Hook de Dados (Ouve os estados de "filtro")
   const { usuarios, pagination, loading, error, refetch } = useGetUsuario({
     pagina: paginaAtual,
     porPagina: porPagina,
-    nome: busca,
+    nome: filtroNome,
+    login: filtroLogin,
     orderBy: "codUsuario",
     direction: "desc",
   });
@@ -31,17 +38,98 @@ export default function UsuariosPage() {
     router.push("/painel/Usuarios/NovoUsuario");
   };
 
-  const handleSearch = (valor: string) => {
-    setBusca(valor);
+  // Ao clicar em buscar, atualiza os filtros que disparam o hook
+  const handleSearch = () => {
     setPaginaAtual(1);
+    setFiltroNome(buscaNome);
+    setFiltroLogin(buscaLogin);
+    setTimeout(() => refetch(), 0);
   };
 
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>USUÁRIOS</h1>
 
+      {/* SEARCH CONTAINER COM 2 INPUTS */}
       <div className={styles.searchContainer}>
-        <SearchBar placeholder="Buscar por Nome" onSearch={handleSearch} />
+        <div
+          style={{
+            display: "flex",
+            gap: "30px",
+            flex: 1,
+            alignItems: "flex-end",
+          }}
+        >
+          {/* Input Nome */}
+          <div className={styles.inputWrapper}>
+            <label
+              style={{
+                fontSize: "12px",
+                color: "#666",
+                marginBottom: "4px",
+                display: "block",
+              }}
+            >
+              Nome
+            </label>
+            <input
+              type="text"
+              placeholder="Buscar por Nome"
+              value={buscaNome}
+              onChange={(e) => setBuscaNome(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              style={{
+                padding: "8px",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                width: "100%",
+              }}
+            />
+          </div>
+
+          {/* Input Login */}
+          <div className={styles.inputWrapper}>
+            <label
+              style={{
+                fontSize: "12px",
+                color: "#666",
+                marginBottom: "4px",
+                display: "block",
+              }}
+            >
+              Login
+            </label>
+            <input
+              type="text"
+              placeholder="Buscar por Login"
+              value={buscaLogin}
+              onChange={(e) => setBuscaLogin(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              style={{
+                padding: "8px",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                width: "100%",
+              }}
+            />
+          </div>
+
+          {/* Botão Buscar */}
+          <button
+            className={styles.primaryButton}
+            onClick={handleSearch}
+            style={{
+              backgroundColor: "#1769e3",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              gap: "5px",
+            }}
+          >
+            Buscar <FiSearch color="#fff" />
+          </button>
+        </div>
+
         <div className={styles.searchActions}>
           <button className={styles.primaryButton} onClick={handleNovoUsuario}>
             Novo Usuário <FiPlus size={18} />

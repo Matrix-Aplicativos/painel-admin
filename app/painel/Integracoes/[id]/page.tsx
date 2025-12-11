@@ -10,39 +10,65 @@ import {
   FiPlus,
   FiAlertCircle,
   FiX,
+  FiEye,
+  FiSlash,
 } from "react-icons/fi";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import PaginationControls from "@/app/src/components/PaginationControls";
 import ModalNovaEmpresa from "@/app/src/components/modals/ModalNovaEmpresa";
+
+// Hooks
 import useGetIntegracaoById from "@/app/src/hooks/Integracao/useGetIntegracaoById";
 import useGetEmpresa from "@/app/src/hooks/Empresa/useGetEmpresa";
 import useDeleteIntegracao from "@/app/src/hooks/Integracao/useDeleteIntegracao";
+import usePostIntegracao, {
+  IntegracaoPayload,
+} from "@/app/src/hooks/Integracao/usePostIntegracao";
 
 export default function IntegrationDetailsPage() {
   const params = useParams();
   const router = useRouter();
-
   const idIntegracao = Number(params.id);
 
+  // --- Estados de Paginação ---
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
+
+  // --- Estados de Controle Visual ---
   const [isNewCompanyModalOpen, setIsNewCompanyModalOpen] = useState(false);
-
   const [isEditing, setIsEditing] = useState(false);
-  const [formDataIntegracao, setFormDataIntegracao] = useState<any>({});
+  const [showPassword, setShowPassword] = useState(false);
 
+  // --- Estado do Formulário (Dados para Edição) ---
+  const [formDataIntegracao, setFormDataIntegracao] = useState({
+    descricao: "",
+    cnpj: "",
+    maxEmpresas: 0,
+    login: "",
+    senha: "", // Opcional, apenas se for editar
+  });
+
+  // --- Estados de Filtro (Empresas) ---
   const [filtroRazao, setFiltroRazao] = useState("");
   const [filtroCnpj, setFiltroCnpj] = useState("");
   const [filtroCidade, setFiltroCidade] = useState("");
+  const [queryRazao, setQueryRazao] = useState("");
+  const [queryCnpj, setQueryCnpj] = useState("");
+  const [queryCidade, setQueryCidade] = useState("");
 
+  // --- HOOKS ---
   const {
     integracao,
     loading: loadingIntegracao,
     error: errorIntegracao,
+    refetch: refetchIntegracao, // Importante para atualizar após salvar
   } = useGetIntegracaoById(idIntegracao);
 
   const { deleteIntegracao, loading: loadingDelete } = useDeleteIntegracao();
+
+  // Hook de Salvar/Editar
+  const { createIntegracao, loading: loadingSave } = usePostIntegracao();
 
   const {
     empresas,
@@ -53,34 +79,30 @@ export default function IntegrationDetailsPage() {
     codIntegracao: idIntegracao,
     pagina: paginaAtual,
     porPagina: porPagina,
-    razaoSocial: filtroRazao,
-    cnpj: filtroCnpj,
-    cidade: filtroCidade,
+    razaoSocial: queryRazao,
+    cnpj: queryCnpj,
+    cidade: queryCidade,
   });
 
+  // --- Efeito: Carregar dados no Form ---
   useEffect(() => {
     if (integracao) {
       setFormDataIntegracao({
-        descricao: integracao.descricao,
-        maxEmpresas: integracao.maxEmpresas,
+        descricao: integracao.descricao || "",
+        cnpj: integracao.responsavel?.login || "",
+        maxEmpresas: integracao.maxEmpresas || 0,
+        login: integracao.responsavel?.login || "",
+        senha: "", // Senha vem vazia
       });
     }
   }, [integracao]);
 
-  const handleVerDetalhesEmpresa = (empresaId: number) => {
-    router.push(`/painel/Integracoes/${idIntegracao}/Empresa/${empresaId}`);
-  };
-
-  const handleNovaEmpresa = () => {
-    setIsNewCompanyModalOpen(true);
-  };
-  const handleEmpresaSalvaComSucesso = () => {
-    refetchEmpresas(); 
-  };
-
   const handleBuscarEmpresas = () => {
     setPaginaAtual(1);
-    refetchEmpresas();
+    setQueryRazao(filtroRazao);
+    setQueryCnpj(filtroCnpj);
+    setQueryCidade(filtroCidade);
+    setTimeout(() => refetchEmpresas(), 0);
   };
 
   const handleEditar = () => {
@@ -89,17 +111,40 @@ export default function IntegrationDetailsPage() {
 
   const handleCancelarEdicao = () => {
     setIsEditing(false);
+    setShowPassword(false);
+    // Reseta form para os dados originais do GET
     if (integracao) {
       setFormDataIntegracao({
-        descricao: integracao.descricao,
-        maxEmpresas: integracao.maxEmpresas,
+        descricao: integracao.descricao || "",
+        cnpj: integracao.responsavel?.login || "",
+        maxEmpresas: integracao.maxEmpresas || 0,
+        login: integracao.responsavel?.login || "",
+        senha: "",
       });
     }
   };
 
-  const handleSalvarEdicao = () => {
-    console.log("Salvar Edição Integração:", formDataIntegracao);
-    setIsEditing(false);
+  const handleSalvarEdicao = async () => {
+    // Monta o Payload conforme a interface IntegracaoPayload
+    const payload: IntegracaoPayload = {
+      codIntegracao: idIntegracao, // ID para indicar edição
+      descricao: formDataIntegracao.descricao,
+      cnpj: formDataIntegracao.cnpj,
+      maxEmpresas: formDataIntegracao.maxEmpresas,
+      usuario: {
+        nomeUsuario: formDataIntegracao.login,
+        senha: formDataIntegracao.senha || undefined,
+      },
+      ativo: integracao?.ativo ?? true,
+    };
+
+    const sucesso = await createIntegracao(payload);
+
+    if (sucesso) {
+      alert("Integração salva com sucesso!");
+      setIsEditing(false);
+      refetchIntegracao(); // Atualiza os dados na tela
+    }
   };
 
   const handleExcluir = async () => {
@@ -115,6 +160,15 @@ export default function IntegrationDetailsPage() {
       }
     }
   };
+
+  // Funções de Empresa
+  const handleVerDetalhesEmpresa = (empresaId: number) => {
+    router.push(`/painel/Integracoes/${idIntegracao}/Empresa/${empresaId}`);
+  };
+  const handleNovaEmpresa = () => setIsNewCompanyModalOpen(true);
+  const handleEmpresaSalvaComSucesso = () => refetchEmpresas();
+
+  // --- Renderização ---
 
   if (loadingIntegracao)
     return (
@@ -157,11 +211,12 @@ export default function IntegrationDetailsPage() {
         <div>
           <div className={styles.sectionTitle}>Dados de Cadastro</div>
           <div className={styles.formGroup}>
+            {/* DESCRIÇÃO */}
             <div className={styles.inputWrapper}>
               <label>Descrição</label>
               <input
                 type="text"
-                value={formDataIntegracao.descricao || ""}
+                value={formDataIntegracao.descricao}
                 disabled={!isEditing}
                 onChange={(e) =>
                   setFormDataIntegracao({
@@ -173,14 +228,23 @@ export default function IntegrationDetailsPage() {
             </div>
 
             <div className={styles.inputRow}>
+              {/* CNPJ */}
               <div className={styles.inputWrapper}>
                 <label>CNPJ</label>
                 <input
                   type="text"
-                  defaultValue={integracao.cnpj || ""}
-                  disabled
+                  value={formDataIntegracao.cnpj}
+                  disabled={!isEditing}
+                  onChange={(e) =>
+                    setFormDataIntegracao({
+                      ...formDataIntegracao,
+                      cnpj: e.target.value,
+                    })
+                  }
                 />
               </div>
+
+              {/* MAX EMPRESAS */}
               <div
                 className={styles.inputWrapper}
                 style={{ maxWidth: "150px" }}
@@ -188,7 +252,7 @@ export default function IntegrationDetailsPage() {
                 <label>Max. Empresas</label>
                 <input
                   type="number"
-                  value={formDataIntegracao.maxEmpresas || 0}
+                  value={formDataIntegracao.maxEmpresas}
                   disabled={!isEditing}
                   onChange={(e) =>
                     setFormDataIntegracao({
@@ -205,32 +269,70 @@ export default function IntegrationDetailsPage() {
         <div>
           <div className={styles.sectionTitle}>Usuário Responsável</div>
           <div className={styles.formGroup}>
+            {/* NOME (APENAS LEITURA - Vem do GET) */}
             <div className={styles.inputWrapper}>
-              <label>Login / Nome</label>
+              <label>Nome</label>
               <input
                 type="text"
-                defaultValue={
-                  integracao.responsavel?.login || integracao.responsavel?.nome
-                }
+                defaultValue={integracao.responsavel?.nome || ""}
                 disabled
                 style={{ backgroundColor: "#f9f9f9" }}
               />
             </div>
-            <div className={styles.userActions}>
-              <button
-                className={`${styles.btn} ${styles.btnBlue}`}
-                disabled={loadingDelete || isEditing}
-              >
-                Alterar Senha <FiEdit2 />
-              </button>
-              <button
-                className={`${styles.btn} ${styles.btnRed}`}
-                disabled={loadingDelete || isEditing}
-              >
-                {integracao.responsavel?.ativo ? "Desativar" : "Ativar"}{" "}
-                <FiAlertCircle />
-              </button>
-            </div>
+
+            {isEditing && (
+              <div className={styles.inputWrapper}>
+                <label>Nova Senha (Opcional)</label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Deixe em branco para manter"
+                    value={formDataIntegracao.senha}
+                    onChange={(e) =>
+                      setFormDataIntegracao({
+                        ...formDataIntegracao,
+                        senha: e.target.value,
+                      })
+                    }
+                    style={{ width: "95%" }}
+                  />
+                  <div
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      cursor: "pointer",
+                      color: "#666",
+                    }}
+                  >
+                    {showPassword ? <FiSlash /> : <FiEye />}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!isEditing && (
+              <div className={styles.userActions}>
+                <button
+                  className={`${styles.btn} ${styles.btnBlue}`}
+                  disabled={loadingDelete}
+                  onClick={() => {
+                    setIsEditing(true);
+                  }}
+                >
+                  Alterar Senha <FiEdit2 />
+                </button>
+                <button
+                  className={`${styles.btn} ${styles.btnRed}`}
+                  disabled={loadingDelete}
+                >
+                  {integracao.responsavel?.ativo ? "Desativar" : "Ativar"}{" "}
+                  <FiAlertCircle />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -258,12 +360,14 @@ export default function IntegrationDetailsPage() {
             <button
               className={`${styles.btn} ${styles.btnGreen}`}
               onClick={handleSalvarEdicao}
+              disabled={loadingSave}
             >
-              Salvar <FiCheck />
+              {loadingSave ? "Salvando..." : "Salvar"} <FiCheck />
             </button>
             <button
               className={`${styles.btn} ${styles.btnRed}`}
               onClick={handleCancelarEdicao}
+              disabled={loadingSave}
             >
               Voltar <FiX />
             </button>
@@ -282,6 +386,7 @@ export default function IntegrationDetailsPage() {
               placeholder="Buscar por Razão"
               value={filtroRazao}
               onChange={(e) => setFiltroRazao(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleBuscarEmpresas()}
             />
           </div>
           <div className={styles.inputWrapper}>
@@ -291,6 +396,7 @@ export default function IntegrationDetailsPage() {
               placeholder="Buscar por CNPJ"
               value={filtroCnpj}
               onChange={(e) => setFiltroCnpj(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleBuscarEmpresas()}
             />
           </div>
           <div className={styles.inputWrapper}>
@@ -300,6 +406,7 @@ export default function IntegrationDetailsPage() {
               placeholder="Buscar por Cidade"
               value={filtroCidade}
               onChange={(e) => setFiltroCidade(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleBuscarEmpresas()}
             />
           </div>
 

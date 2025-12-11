@@ -18,6 +18,8 @@ export interface EmpresaPayload {
   maxDispositivosFv: number;
   maxDispositivosMultiFv: number;
   validadeLicencaFv: string;
+  diaVencimentoBoletoColeta: number;
+  diaVencimentoBoletoFv: number;
   ativo: boolean;
 }
 

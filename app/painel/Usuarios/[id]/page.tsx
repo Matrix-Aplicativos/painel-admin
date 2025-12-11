@@ -15,10 +15,13 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import PaginationControls from "@/app/src/components/PaginationControls";
 
+// Hooks
 import useGetUsuarioById, {
   UsuarioDetalhe,
 } from "@/app/src/hooks/Usuario/useGetUsuarioById";
 import useDeleteUsuario from "@/app/src/hooks/Usuario/useDeleteUsuario";
+import usePostUsuario from "@/app/src/hooks/Usuario/usePostUsuario"; // Usando POST para salvar (ajuste se tiver PUT)
+import usePostResetarSenha from "@/app/src/hooks/Usuario/usePostResetarSenha"; // Hook de Reset
 import useGetCargo, { CargoItem } from "@/app/src/hooks/Cargo/useGetCargo";
 
 import ModalNovoCargo from "@/app/src/components/modals/ModalNovoCargo";
@@ -30,10 +33,16 @@ export default function UserDetailsPage() {
   const router = useRouter();
   const id = Number(params.id);
 
-  const { usuario, loading, error } = useGetUsuarioById(id);
+  const { usuario, loading, error, refetch } = useGetUsuarioById(id);
   const { deleteUsuario, loading: loadingDelete } = useDeleteUsuario();
+  const { createUsuario, loading: loadingSave } = usePostUsuario();
+  const { resetarSenha, loading: loadingReset } = usePostResetarSenha();
 
-  const { cargos, loading: loadingCargos } = useGetCargo({
+  const {
+    cargos,
+    loading: loadingCargos,
+    refetch: refetchCargos,
+  } = useGetCargo({
     pagina: 1,
     porPagina: 100,
     direction: "asc",
@@ -58,6 +67,7 @@ export default function UserDetailsPage() {
   useEffect(() => {
     if (usuario) {
       setFormData({
+        codUsuario: usuario.codUsuario,
         nome: usuario.nome,
         login: usuario.login,
         email: usuario.email,
@@ -93,6 +103,7 @@ export default function UserDetailsPage() {
     setIsEditing(false);
     if (usuario) {
       setFormData({
+        codUsuario: usuario.codUsuario,
         nome: usuario.nome,
         login: usuario.login,
         email: usuario.email,
@@ -101,9 +112,65 @@ export default function UserDetailsPage() {
     }
   };
 
-  const handleSalvarEdicao = () => {
-    console.log("Salvar Edição:", { ...formData, cargos: selectedCargos });
-    setIsEditing(false);
+  const handleSalvarEdicao = async () => {
+    const payload: any = {
+      codUsuario: id,
+      nome: formData.nome || "",
+      email: formData.email || "",
+      login: formData.login || "",
+      primeiroAcesso: usuario?.primeiroAcesso || false,
+      ativo: formData.ativo !== undefined ? formData.ativo : true,
+    };
+
+    const sucesso = await createUsuario(payload);
+
+    if (sucesso) {
+      alert("Usuário atualizado com sucesso!");
+      setIsEditing(false);
+      refetch();
+    }
+  };
+
+  const handleToggleAtivo = async () => {
+    if (!usuario) return;
+
+    const novoStatus = !usuario.ativo;
+    const acao = novoStatus ? "ativar" : "desativar";
+
+    const confirmacao = window.confirm(
+      `Deseja realmente ${acao} este usuário?`
+    );
+
+    if (confirmacao) {
+      const payload: any = {
+        codUsuario: id,
+        nome: usuario.nome,
+        email: usuario.email,
+        login: usuario.login,
+        primeiroAcesso: usuario.primeiroAcesso,
+        ativo: novoStatus,
+      };
+
+      const sucesso = await createUsuario(payload);
+      if (sucesso) {
+        refetch();
+      }
+    }
+  };
+
+  const handleResetarSenha = async () => {
+    if (!usuario?.login) return;
+
+    const confirmacao = window.confirm(
+      `Deseja resetar a senha do usuário ${usuario.login}? A nova senha será os 3 primeiros dígitos do login.`
+    );
+
+    if (confirmacao) {
+      const sucesso = await resetarSenha(usuario.login);
+      if (sucesso) {
+        alert("Senha resetada com sucesso!");
+      }
+    }
   };
 
   const handleExcluir = async () => {
@@ -136,9 +203,9 @@ export default function UserDetailsPage() {
     });
   };
 
-  const handleSaveRole = (cargo: string) => {
-    console.log("Novo cargo:", cargo);
+  const handleCargoCreated = () => {
     setIsRoleModalOpen(false);
+    refetchCargos();
   };
 
   const handleVincularEmpresa = (empresa: any) => {
@@ -206,7 +273,7 @@ export default function UserDetailsPage() {
       <ModalNovoCargo
         isOpen={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
-        onSave={handleSaveRole}
+        onSuccess={handleCargoCreated}
       />
       <ModalVincularEmpresa
         isOpen={isCompanyModalOpen}
@@ -257,12 +324,14 @@ export default function UserDetailsPage() {
               <button
                 className={`${styles.btn} ${styles.btnGreen}`}
                 onClick={handleSalvarEdicao}
+                disabled={loadingSave}
               >
                 Salvar <FiCheck />
               </button>
               <button
                 className={`${styles.btn} ${styles.btnRed}`}
                 onClick={handleCancelarEdicao}
+                disabled={loadingSave}
               >
                 Cancelar <FiX />
               </button>
@@ -309,14 +378,19 @@ export default function UserDetailsPage() {
             <button
               className={`${styles.btn} ${styles.btnBlue}`}
               style={{ height: "38px" }}
-              disabled={isEditing}
+              disabled={isEditing || loadingReset}
+              onClick={handleResetarSenha}
             >
-              Alterar Senha <FiRefreshCw />
+              Resetar Senha <FiRefreshCw />
             </button>
+
             <button
-              className={`${styles.btn} ${styles.btnRed}`}
+              className={`${styles.btn} ${
+                usuario.ativo ? styles.btnRed : styles.btnGreen
+              }`}
               style={{ height: "38px" }}
-              disabled={isEditing}
+              disabled={isEditing || loadingSave}
+              onClick={handleToggleAtivo}
             >
               {usuario.ativo ? "Desativar" : "Ativar"} <FiAlertCircle />
             </button>

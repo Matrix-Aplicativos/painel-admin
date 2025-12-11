@@ -35,6 +35,8 @@ export interface EmpresaItem {
   maxDispositivosFdv: number;
   maxDispositivosMultiFdv: number;
   validadeLicencaFdv: string;
+  diaVencimentoBoletoColeta: number;
+  diaVencimentoBoletoFdv: number;
   ativo: boolean;
 }
 

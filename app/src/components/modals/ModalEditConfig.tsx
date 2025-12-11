@@ -1,49 +1,89 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import styles from "./ModalEditConfig.module.css";
 import { FiX, FiCheck } from "react-icons/fi";
+import usePutConfigMovix from "@/app/src/hooks/Configuracao/usePutConfigMovix";
+import usePutConfigFdv from "@/app/src/hooks/Configuracao/usePutConfigFdv";
 
-interface ConfigData {
-  id: number;
-  cod: number;
+// Interface dos dados recebidos do GET
+interface ConfigItem {
+  codConfiguracao: number;
+  codEmpresa: number;
   descricao: string;
   valor: string;
-  status: boolean;
+  ativo: boolean;
 }
 
 interface ModalEditConfigProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: ConfigData) => void;
-  data: ConfigData | null;
+  // Mudamos onSave para onSaveSuccess, pois o modal gerencia o salvamento
+  onSaveSuccess: () => void;
+  data: ConfigItem | null;
+  tipo: "MOVIX" | "FDV"; // Nova prop para decidir qual hook usar
 }
 
 export default function ModalEditConfig({
   isOpen,
   onClose,
-  onSave,
+  onSaveSuccess,
   data,
+  tipo,
 }: ModalEditConfigProps) {
-  const [formData, setFormData] = useState<ConfigData | null>(null);
+  // Estado local do formulário
+  const [formData, setFormData] = useState<ConfigItem | null>(null);
 
+  // Hooks de PUT
+  const { updateConfig: updateMovix, loading: loadingMovix } =
+    usePutConfigMovix();
+  const { updateConfig: updateFdv, loading: loadingFdv } = usePutConfigFdv();
+
+  // Carrega os dados no form quando abre
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (data) setFormData(data);
+    if (data) {
+      setFormData(data);
+    }
   }, [data]);
 
   if (!isOpen || !formData) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const isLoading = loadingMovix || loadingFdv;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    if (!formData) return;
+
+    let sucesso = false;
+
+    // Payload esperado pelos hooks
+    const payload = {
+      valor: formData.valor,
+      ativo: formData.ativo,
+    };
+
+    if (tipo === "MOVIX") {
+      sucesso = await updateMovix(formData.codConfiguracao, payload);
+    } else {
+      sucesso = await updateFdv(formData.codConfiguracao, payload);
+    }
+
+    if (sucesso) {
+      onSaveSuccess(); // Avisa o pai para recarregar a lista
+      onClose(); // Fecha o modal
+    }
   };
 
   return (
     <div className={styles.overlay}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h2 className={styles.title}>EDITAR CONFIGURAÇÃO</h2>
-          <button className={styles.closeButton} onClick={onClose}>
+          <h2 className={styles.title}>EDITAR CONFIGURAÇÃO ({tipo})</h2>
+          <button
+            className={styles.closeButton}
+            onClick={onClose}
+            disabled={isLoading}
+          >
             <FiX />
           </button>
         </div>
@@ -62,16 +102,18 @@ export default function ModalEditConfig({
               onChange={(e) =>
                 setFormData({ ...formData, valor: e.target.value })
               }
+              disabled={isLoading}
             />
           </div>
 
           <div className={styles.inputGroup}>
             <label>Status</label>
             <select
-              value={formData.status ? "true" : "false"}
+              value={formData.ativo ? "true" : "false"}
               onChange={(e) =>
-                setFormData({ ...formData, status: e.target.value === "true" })
+                setFormData({ ...formData, ativo: e.target.value === "true" })
               }
+              disabled={isLoading}
             >
               <option value="true">Ativo</option>
               <option value="false">Inativo</option>
@@ -83,11 +125,16 @@ export default function ModalEditConfig({
               type="button"
               className={styles.btnCancel}
               onClick={onClose}
+              disabled={isLoading}
             >
               Cancelar
             </button>
-            <button type="submit" className={styles.btnSave}>
-              Salvar <FiCheck />
+            <button
+              type="submit"
+              className={styles.btnSave}
+              disabled={isLoading}
+            >
+              {isLoading ? "Salvando..." : "Salvar"} <FiCheck />
             </button>
           </div>
         </form>

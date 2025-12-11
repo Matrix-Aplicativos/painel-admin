@@ -19,24 +19,34 @@ export default function ModalMunicipio({
   onClose,
   onSelect,
 }: ModalMunicipioProps) {
+  // Estados dos Inputs (Visual)
   const [busca, setBusca] = useState("");
   const [uf, setUf] = useState("");
+
+  // Estados dos Filtros (Hook)
+  const [filtroNome, setFiltroNome] = useState("");
+  const [filtroUf, setFiltroUf] = useState("");
 
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
 
+  // Hook escuta os estados de filtro
   const { municipios, pagination, loading, refetch } = useGetMunicipio({
     pagina: paginaAtual,
     porPagina: porPagina,
-    nome: busca,
-    uf: uf,
+    nome: filtroNome, // <--- Aqui
+    uf: filtroUf, // <--- Aqui
   });
 
   if (!isOpen) return null;
 
   const handleBuscar = () => {
     setPaginaAtual(1);
-    refetch();
+    // Atualiza os filtros que disparam o hook
+    setFiltroNome(busca);
+    setFiltroUf(uf);
+    // Garante o refetch caso os filtros sejam iguais
+    setTimeout(() => refetch(), 0);
   };
 
   const handleSelecionar = (item: MunicipioItem) => {
@@ -110,10 +120,11 @@ export default function ModalMunicipio({
             Buscar <FiSearch />
           </button>
         </div>
+
         <div
           className={styles.tableContainer}
           style={{
-            maxHeight: "60vh", 
+            maxHeight: "60vh",
             overflowY: "auto",
             marginTop: "10px",
             borderBottom: "1px solid #eee",
