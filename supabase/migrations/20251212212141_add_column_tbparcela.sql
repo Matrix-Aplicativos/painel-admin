@@ -1,0 +1,2 @@
+ALTER TABLE TbParcela
+ADD COLUMN DataPagamento DATE;
