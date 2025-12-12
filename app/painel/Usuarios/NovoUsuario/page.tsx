@@ -348,7 +348,6 @@ export default function NewUserPage() {
 
       {renderGeneralData()}
       {renderRolesSection()}
-      {renderCompaniesSection()}
 
       <div className={styles.footer}>
         <button

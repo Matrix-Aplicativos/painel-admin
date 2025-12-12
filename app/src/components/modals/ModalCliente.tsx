@@ -4,44 +4,78 @@ import { useState, useEffect } from "react";
 import styles from "./ModalCliente.module.css";
 import { FiX, FiCheck, FiSearch } from "react-icons/fi";
 import ModalMunicipio from "./ModalMunicipio";
-
-interface ClienteData {
-  id?: number;
-  razaoSocial: string;
-  cnpj: string;
-  cep: string;
-  cidade: string;
-  endereco: string;
-  complemento: string; // Mudou de bairro para complemento
-  descricaoIntegracao: string; // Novo campo
-  situacao: string;
-}
+import usePostCliente, {
+  ClientePayload,
+} from "@/app/src/hooks/Cliente/usePostCliente";
+import { MunicipioItem } from "../../hooks/Municipio/useGetMunicipio";
 
 interface ModalClienteProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: ClienteData) => void;
-  initialData?: ClienteData | null;
+  // Agora não recebe mais dados, ele mesmo chama o hook de sucesso
+  onSuccess: () => void;
+  initialData?: any; // Recebe o objeto do Supabase (TbClienteItem)
 }
 
 export default function ModalCliente({
   isOpen,
   onClose,
-  onSave,
+  onSuccess,
   initialData,
 }: ModalClienteProps) {
   const [isMunicipioOpen, setIsMunicipioOpen] = useState(false);
+  const { saveCliente, loading } = usePostCliente();
 
-  const [formData, setFormData] = useState<ClienteData>({
-    razaoSocial: "",
+  // Estado alinhado com o banco + campos auxiliares de formulário
+  const [formData, setFormData] = useState({
+    razaosocial: "",
     cnpj: "",
     cep: "",
-    cidade: "",
-    endereco: "",
+    logradouro: "",
+    numero: "",
     complemento: "",
-    descricaoIntegracao: "",
-    situacao: "Ativo",
+    bairro: "",
+    cidadeNome: "", // Visual
+    observacoes: "",
+    situacao: "1", // Padrão "1" (Ativo)
   });
+
+  // Função para "explodir" o endereço único do banco nos campos do form
+  // Ex: "Rua A, 123, Centro, Cuiabá" -> logradouro="Rua A", numero="123"...
+  // Como é difícil fazer isso perfeito sem padrão, vamos simplificar:
+  // Se for edição, jogamos o endereço todo no logradouro por enquanto, ou deixamos vazio para o usuário corrigir.
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        setFormData({
+          razaosocial: initialData.razaosocial || "",
+          cnpj: initialData.cnpj || "",
+          cep: initialData.cep || "",
+          logradouro: initialData.endereco || "", // Joga tudo aqui por enquanto
+          numero: "",
+          complemento: "",
+          bairro: "",
+          cidadeNome: "",
+          observacoes: initialData.observacoes || "",
+          situacao: initialData.situacao || "1",
+        });
+      } else {
+        setFormData({
+          razaosocial: "",
+          cnpj: "",
+          cep: "",
+          logradouro: "",
+          numero: "",
+          complemento: "",
+          bairro: "",
+          cidadeNome: "",
+          observacoes: "",
+          situacao: "1",
+        });
+      }
+    }
+  }, [isOpen, initialData]);
 
   const maskCNPJ = (value: string) => {
     return value
@@ -60,25 +94,6 @@ export default function ModalCliente({
       .slice(0, 9);
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      if (initialData) {
-        setFormData(initialData);
-      } else {
-        setFormData({
-          razaoSocial: "",
-          cnpj: "",
-          cep: "",
-          cidade: "",
-          endereco: "",
-          complemento: "",
-          descricaoIntegracao: "",
-          situacao: "Ativo",
-        });
-      }
-    }
-  }, [isOpen, initialData]);
-
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -93,13 +108,45 @@ export default function ModalCliente({
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
   };
 
-  const handleCidadeSelect = (cidadeCompleta: string) => {
-    setFormData((prev) => ({ ...prev, cidade: cidadeCompleta }));
+  const handleCidadeSelect = (cidade: MunicipioItem) => {
+    setFormData((prev) => ({
+      ...prev,
+      cidadeNome: `${cidade.nome} - ${cidade.uf}`,
+    }));
+    setIsMunicipioOpen(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+
+    // Monta o endereço completo para salvar numa coluna só (padrão do banco legado)
+    // Ex: "Rua X, 123, Apto 10, Centro, Cuiabá - MT"
+    const partesEndereco = [
+      formData.logradouro,
+      formData.numero,
+      formData.complemento,
+      formData.bairro,
+      formData.cidadeNome,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    const payload: ClientePayload = {
+      codcliente: initialData?.codcliente || null, // Se tem ID, é update
+      razaosocial: formData.razaosocial,
+      cnpj: formData.cnpj.replace(/\D/g, ""), // Remove formatação pro banco
+      cep: formData.cep.replace(/\D/g, ""),
+      endereco: partesEndereco, // Salva concatenado
+      observacoes: formData.observacoes,
+      situacao: formData.situacao,
+    };
+
+    const sucesso = await saveCliente(payload);
+
+    if (sucesso) {
+      onSuccess();
+      onClose();
+    }
   };
 
   if (!isOpen) return null;
@@ -122,6 +169,7 @@ export default function ModalCliente({
               className={styles.closeButton}
               onClick={onClose}
               type="button"
+              disabled={loading}
             >
               <FiX />
             </button>
@@ -133,12 +181,13 @@ export default function ModalCliente({
               <div className={styles.inputGroup}>
                 <label>Razão Social</label>
                 <input
-                  name="razaoSocial"
+                  name="razaosocial"
                   type="text"
                   placeholder="Nome da Empresa"
-                  value={formData.razaoSocial}
+                  value={formData.razaosocial}
                   onChange={handleChange}
                   required
+                  disabled={loading}
                 />
               </div>
               <div className={styles.inputGroup}>
@@ -150,6 +199,7 @@ export default function ModalCliente({
                   value={formData.cnpj}
                   onChange={handleChange}
                   required
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -164,6 +214,7 @@ export default function ModalCliente({
                   placeholder="00000-000"
                   value={formData.cep}
                   onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
 
@@ -171,28 +222,68 @@ export default function ModalCliente({
                 <label>Cidade</label>
                 <div className={styles.inputWrapperRelative}>
                   <input
-                    name="cidade"
+                    name="cidadeNome"
                     type="text"
                     placeholder="Clique para selecionar"
-                    value={formData.cidade}
+                    value={formData.cidadeNome}
                     readOnly
-                    onClick={() => setIsMunicipioOpen(true)}
+                    onClick={() => !loading && setIsMunicipioOpen(true)}
+                    style={{
+                      cursor: "pointer",
+                      backgroundColor: loading ? "#eee" : "#fff",
+                    }}
                   />
-                  <FiSearch className={styles.searchIcon} size={16} />
+                  <FiSearch
+                    className={styles.searchIcon}
+                    size={16}
+                    style={{
+                      position: "absolute",
+                      right: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "#1769e3",
+                    }}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Linha 3: Endereço e Complemento */}
+            {/* Linha 3: Endereço (Quebrado visualmente, mas salvo junto) */}
+            <div className={styles.formRow}>
+              <div className={styles.inputGroup} style={{ flex: 2 }}>
+                <label>Logradouro (Rua, Av...)</label>
+                <input
+                  name="logradouro"
+                  type="text"
+                  placeholder="Rua das Flores"
+                  value={formData.logradouro}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              </div>
+              <div className={styles.inputGroup} style={{ flex: 0.5 }}>
+                <label>Número</label>
+                <input
+                  name="numero"
+                  type="text"
+                  placeholder="123"
+                  value={formData.numero}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
             <div className={styles.formRow}>
               <div className={styles.inputGroup}>
-                <label>Endereço</label>
+                <label>Bairro</label>
                 <input
-                  name="endereco"
+                  name="bairro"
                   type="text"
-                  placeholder="Rua, Número"
-                  value={formData.endereco}
+                  placeholder="Centro"
+                  value={formData.bairro}
                   onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
               <div className={styles.inputGroup}>
@@ -200,23 +291,25 @@ export default function ModalCliente({
                 <input
                   name="complemento"
                   type="text"
-                  placeholder="Apto, Bloco, Sala..."
+                  placeholder="Sala 101"
                   value={formData.complemento}
                   onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
             </div>
 
-            {/* Linha 4: Descrição Integração e Situação */}
+            {/* Linha 4: Observações e Situação */}
             <div className={styles.formRow}>
               <div className={styles.inputGroup} style={{ flex: 2 }}>
-                <label>Descrição da Integração</label>
+                <label>Observações / Integração</label>
                 <input
-                  name="descricaoIntegracao"
+                  name="observacoes"
                   type="text"
-                  placeholder="Ex: Integração ERP Protheus"
-                  value={formData.descricaoIntegracao}
+                  placeholder="Ex: 3 Licenças Movix..."
+                  value={formData.observacoes}
                   onChange={handleChange}
+                  disabled={loading}
                 />
               </div>
               <div className={styles.inputGroup} style={{ flex: 1 }}>
@@ -225,9 +318,12 @@ export default function ModalCliente({
                   name="situacao"
                   value={formData.situacao}
                   onChange={handleChange}
+                  disabled={loading}
                 >
-                  <option value="Ativo">Ativo</option>
-                  <option value="Inativo">Inativo</option>
+                  <option value="1">Ativo</option>
+                  <option value="2">Cancelado</option>
+                  <option value="3">Em Negociação</option>
+                  <option value="4">Prospecção</option>
                 </select>
               </div>
             </div>
@@ -238,11 +334,16 @@ export default function ModalCliente({
                 type="button"
                 className={styles.btnCancel}
                 onClick={onClose}
+                disabled={loading}
               >
                 Cancelar
               </button>
-              <button type="submit" className={styles.btnSave}>
-                Salvar <FiCheck />
+              <button
+                type="submit"
+                className={styles.btnSave}
+                disabled={loading}
+              >
+                {loading ? "Salvando..." : "Salvar"} <FiCheck />
               </button>
             </div>
           </form>

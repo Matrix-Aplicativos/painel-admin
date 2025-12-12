@@ -5,19 +5,20 @@ import styles from "./ModalParcela.module.css";
 import { FiChevronLeft, FiCheck, FiCalendar } from "react-icons/fi";
 
 interface ParcelaData {
-  id?: number;
-  parcela: string | number;
+  codparcela?: number;
+  numparcela: string | number;
   valor: string | number;
-  vencimento: string;
+  datavencimento: string;
   tipo: string;
-  dataPagamento: string;
+  datapagamento: string;
+  pago: boolean; // Adicionado para controle visual, se precisar
 }
 
 interface ModalParcelaProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: ParcelaData) => void;
-  initialData?: ParcelaData | null;
+  initialData?: any; // Pode vir do banco
 }
 
 export default function ModalParcela({
@@ -26,17 +27,52 @@ export default function ModalParcela({
   onSave,
   initialData,
 }: ModalParcelaProps) {
-  // Refs para controlar os inputs de data invisíveis
   const vencimentoRef = useRef<HTMLInputElement>(null);
   const pagamentoRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<ParcelaData>({
-    parcela: "",
+    numparcela: "",
     valor: "",
-    vencimento: "",
+    datavencimento: "",
     tipo: "",
-    dataPagamento: "",
+    datapagamento: "",
+    pago: false,
   });
+
+  // Função auxiliar para formatar data YYYY-MM-DD -> DD/MM/AAAA
+  const formatDateDisplay = (isoDate: string) => {
+    if (!isoDate) return "";
+    const date = new Date(isoDate);
+    return date.toLocaleDateString("pt-BR");
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        setFormData({
+          codparcela: initialData.codparcela,
+          numparcela: initialData.numparcela,
+          valor: (initialData.valor || 0).toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          }),
+          datavencimento: formatDateDisplay(initialData.datavencimento),
+          tipo: initialData.tipo,
+          datapagamento: formatDateDisplay(initialData.datapagamento),
+          pago: initialData.pago || false,
+        });
+      } else {
+        setFormData({
+          numparcela: "",
+          valor: "",
+          datavencimento: "",
+          tipo: "",
+          datapagamento: "",
+          pago: false,
+        });
+      }
+    }
+  }, [isOpen, initialData]);
 
   // --- MÁSCARAS ---
   const maskCurrency = (value: string) => {
@@ -57,61 +93,27 @@ export default function ModalParcela({
   };
 
   // --- HANDLERS ---
-
-  // Função Mágica: Abre o calendário nativo quando clica no ícone
   const abrirCalendario = (ref: React.RefObject<HTMLInputElement>) => {
     try {
       if (ref.current) {
-        // "showPicker" é o método moderno para abrir o calendário
-        // @ts-ignore (TypeScript antigo pode reclamar, mas funciona nos navegadores modernos)
-        if (ref.current.showPicker) {
-          // @ts-ignore
-          ref.current.showPicker();
-        } else {
-          // Fallback: foca no input para tentar disparar (mobile)
+        // @ts-ignore
+        if (ref.current.showPicker) ref.current.showPicker();
+        else {
           ref.current.focus();
           ref.current.click();
         }
       }
     } catch (error) {
-      console.log("Navegador não suporta showPicker programático", error);
+      console.log(error);
     }
   };
 
-  // Recebe a data do calendário (YYYY-MM-DD) e joga pro texto (DD/MM/AAAA)
   const handleDatePickerChange = (dateValue: string, fieldName: string) => {
     if (!dateValue) return;
     const [year, month, day] = dateValue.split("-");
     const formattedDate = `${day}/${month}/${year}`;
     setFormData((prev) => ({ ...prev, [fieldName]: formattedDate }));
   };
-
-  useEffect(() => {
-    if (isOpen) {
-      if (initialData) {
-        setFormData({
-          ...initialData,
-          valor:
-            typeof initialData.valor === "number"
-              ? initialData.valor.toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                })
-              : initialData.valor,
-        });
-      } else {
-        setFormData({
-          parcela: "",
-          valor: "",
-          vencimento: "",
-          tipo: "",
-          dataPagamento: "",
-        });
-      }
-    }
-  }, [isOpen, initialData]);
-
-  if (!isOpen) return null;
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -136,6 +138,8 @@ export default function ModalParcela({
     onSave(formData);
   };
 
+  if (!isOpen) return null;
+
   return (
     <div className={styles.overlay}>
       <div className={styles.container}>
@@ -149,19 +153,20 @@ export default function ModalParcela({
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
-          {/* NÚMERO PARCELA */}
+          {/* Nº Parcela */}
           <div className={styles.inputGroup}>
             <label>Nº da Parcela</label>
             <input
-              name="parcela"
+              name="numparcela"
               type="number"
               placeholder="1"
-              value={formData.parcela}
+              value={formData.numparcela}
               onChange={handleChange}
+              required
             />
           </div>
 
-          {/* VALOR */}
+          {/* Valor */}
           <div className={styles.inputGroup}>
             <label>Valor</label>
             <input
@@ -170,76 +175,79 @@ export default function ModalParcela({
               placeholder="R$ 0,00"
               value={formData.valor}
               onChange={handleCurrencyChange}
+              required
             />
           </div>
 
-          {/* DATA VENCIMENTO */}
+          {/* Vencimento */}
           <div className={styles.inputGroup}>
             <label>Data Vencimento</label>
             <div className={styles.dateWrapper}>
               <input
-                name="vencimento"
+                name="datavencimento"
                 type="text"
                 placeholder="DD/MM/AAAA"
-                value={formData.vencimento}
+                value={formData.datavencimento}
                 onChange={handleDateChange}
                 maxLength={10}
+                required
               />
-              {/* Ícone Clicável */}
               <FiCalendar
                 className={styles.calendarIcon}
                 size={18}
                 onClick={() => abrirCalendario(vencimentoRef)}
               />
-              {/* Input Nativo Invisível */}
               <input
                 type="date"
                 ref={vencimentoRef}
                 className={styles.hiddenDatePicker}
                 onChange={(e) =>
-                  handleDatePickerChange(e.target.value, "vencimento")
+                  handleDatePickerChange(e.target.value, "datavencimento")
                 }
               />
             </div>
           </div>
 
-          {/* TIPO */}
+          {/* Tipo */}
           <div className={styles.inputGroup}>
             <label>Tipo</label>
-            <select name="tipo" value={formData.tipo} onChange={handleChange}>
+            <select
+              name="tipo"
+              value={formData.tipo}
+              onChange={handleChange}
+              required
+            >
               <option value="">Selecione</option>
               <option value="Ativação">Ativação</option>
               <option value="Manutenção">Manutenção</option>
               <option value="Serviço">Serviço</option>
-              <option value="Serviço">Outros</option>
+              <option value="Outros">Outros</option>
             </select>
           </div>
 
-          {/* DATA PAGAMENTO */}
+          {/* Pagamento (Opcional) */}
           <div className={styles.inputGroup}>
             <label>Data Pagamento</label>
             <div className={styles.dateWrapper}>
               <input
-                name="dataPagamento"
+                name="datapagamento"
                 type="text"
                 placeholder="DD/MM/AAAA"
-                value={formData.dataPagamento}
+                value={formData.datapagamento}
                 onChange={handleDateChange}
                 maxLength={10}
               />
-              {/* Ícone Clicável */}
               <FiCalendar
                 className={styles.calendarIcon}
                 size={18}
                 onClick={() => abrirCalendario(pagamentoRef)}
               />
-              {/* Input Nativo Invisível */}
               <input
                 type="date"
                 ref={pagamentoRef}
                 className={styles.hiddenDatePicker}
                 onChange={(e) =>
-                  handleDatePickerChange(e.target.value, "dataPagamento")
+                  handleDatePickerChange(e.target.value, "datapagamento")
                 }
               />
             </div>

@@ -17,7 +17,7 @@
 .searchContainer {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   margin-bottom: 20px;
   gap: 15px;
   flex-shrink: 0;

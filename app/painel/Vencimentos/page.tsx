@@ -3,60 +3,17 @@
 import { useState } from "react";
 import styles from "./Calendar.module.css";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
-
-const MOCK_VENCIMENTOS = [
-  {
-    id: 1,
-    cliente: "Supermercado Modelo",
-    valor: 1500.0,
-    data: "2025-12-05",
-    categoria: "Vendas",
-    status: "pago",
-  },
-  {
-    id: 2,
-    cliente: "Tech Soluções",
-    valor: 500.0,
-    data: "2025-12-05",
-    categoria: "Serviço",
-    status: "atrasado",
-  },
-  {
-    id: 3,
-    cliente: "Padaria do João",
-    valor: 250.0,
-    data: "2025-12-12",
-    categoria: "Manutenção",
-    status: "pendente",
-  },
-  {
-    id: 4,
-    cliente: "Consultoria ABC",
-    valor: 3200.0,
-    data: "2025-12-15",
-    categoria: "Consultoria",
-    status: "pendente",
-  },
-  {
-    id: 6,
-    cliente: "Scotch Store",
-    valor: 120.0,
-    data: "2025-12-02",
-    categoria: "Manutenção",
-    status: "atrasado",
-  },
-  {
-    id: 7,
-    cliente: "Transportadora Veloz",
-    valor: 10000.0,
-    data: "2025-12-30",
-    categoria: "Contrato",
-    status: "pendente",
-  },
-];
+import useGetVencimentos from "@/app/src/hooks/Financeiro/useGetVencimentos";
 
 export default function VencimentosPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 11, 1));
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Extrai mês e ano para passar para o hook
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  // Hook busca dados reais baseados no mês atual
+  const { vencimentos, loading } = useGetVencimentos(month, year);
 
   const changeMonth = (offset: number) => {
     const newDate = new Date(
@@ -67,8 +24,6 @@ export default function VencimentosPage() {
     setCurrentDate(newDate);
   };
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
   const firstDayIndex = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const prevMonthDays = new Date(year, month, 0).getDate();
@@ -85,9 +40,10 @@ export default function VencimentosPage() {
   };
 
   const renderDays = () => {
-    const totalCells = 42; 
+    const totalCells = 42;
     const days = [];
 
+    // Dias do mês anterior (Cinza)
     for (let i = firstDayIndex; i > 0; i--) {
       days.push(
         <div
@@ -99,6 +55,7 @@ export default function VencimentosPage() {
       );
     }
 
+    // Dias do mês atual
     const today = new Date();
     for (let i = 1; i <= daysInMonth; i++) {
       const isToday =
@@ -106,11 +63,14 @@ export default function VencimentosPage() {
         month === today.getMonth() &&
         year === today.getFullYear();
 
+      // Formata data para comparar com o banco (YYYY-MM-DD)
       const dateString = `${year}-${String(month + 1).padStart(
         2,
         "0"
       )}-${String(i).padStart(2, "0")}`;
-      const dayEvents = MOCK_VENCIMENTOS.filter((v) => v.data === dateString);
+
+      // Filtra os eventos deste dia específico
+      const dayEvents = vencimentos.filter((v) => v.data === dateString);
 
       days.push(
         <div
@@ -120,16 +80,19 @@ export default function VencimentosPage() {
           <span className={styles.dayNumber}>{i}</span>
 
           <div className={styles.eventList}>
+            {loading && dayEvents.length === 0 && i === 1 ? (
+              <span style={{ fontSize: 10, color: "#999" }}>Carregando...</span>
+            ) : null}
+
             {dayEvents.map((event) => (
               <div
                 key={event.id}
                 className={`${styles.eventCard} ${getStatusClass(
                   event.status
                 )}`}
+                title={`${event.cliente} - ${event.categoria} - R$ ${event.valor}`}
               >
-                <span className={styles.clientName} title={event.cliente}>
-                  {event.cliente}
-                </span>
+                <span className={styles.clientName}>{event.cliente}</span>
                 <span className={styles.categoryTag}>{event.categoria}</span>
                 <span className={styles.cardValue}>
                   {event.valor.toLocaleString("pt-BR", {
@@ -144,6 +107,7 @@ export default function VencimentosPage() {
       );
     }
 
+    // Dias do próximo mês (Cinza)
     const filledCells = days.length;
     const remainingCells = totalCells - filledCells;
 

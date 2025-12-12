@@ -8,76 +8,103 @@ import { useParams } from "next/navigation";
 import ModalParcela from "@/app/src/components/modals/ModalParcela";
 import PaginationControls from "@/app/src/components/PaginationControls";
 
-
-// MOCK DE PARCELAS
-const MOCK_PARCELAS = [
-  {
-    id: 101,
-    parcela: 1,
-    valor: 1000.0,
-    vencimento: "10/10/2025",
-    tipo: "Ativação",
-    pago: true,
-    dataPagamento: "09/10/2025",
-  },
-  {
-    id: 102,
-    parcela: 2,
-    valor: 1000.0,
-    vencimento: "10/11/2025",
-    tipo: "Ativação",
-    pago: true,
-    dataPagamento: "09/11/2025",
-  },
-  {
-    id: 103,
-    parcela: 3,
-    valor: 1000.0,
-    vencimento: "10/12/2025",
-    tipo: "Ativação",
-    pago: false,
-    dataPagamento: "-",
-  },
-  {
-    id: 104,
-    parcela: 1,
-    valor: 1000.0,
-    vencimento: "10/01/2026",
-    tipo: "Ativação",
-    pago: false,
-    dataPagamento: "-",
-  },
-];
+// HOOKS
+import useGetClienteById from "@/app/src/hooks/Cliente/useGetClienteById";
+import useGetParcelas, {
+  ParcelaItem,
+} from "@/app/src/hooks/Financeiro/useGetParcelas";
+import usePostParcela, {
+  ParcelaPayload,
+} from "@/app/src/hooks/Financeiro/usePostParcelas";
+import useDeleteParcela from "@/app/src/hooks/Financeiro/useDeleteParcelas";
 
 export default function ParcelasPage() {
   const params = useParams();
-  const idCliente = params.id;
-  const [dados, setDados] = useState(MOCK_PARCELAS);
+  const idCliente = Number(params.id);
 
-  // Estados do Modal
+  // Busca dados
+  const { cliente } = useGetClienteById(idCliente);
+  const { parcelas, loading, refetch } = useGetParcelas(idCliente);
+
+  // Ações
+  const { saveParcela } = usePostParcela();
+  const { deleteParcela } = useDeleteParcela();
+
+  // Estados
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [parcelaSelecionada, setParcelaSelecionada] = useState<any>(null);
 
-  // Ações
+  // Paginação (No front por enquanto)
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const porPagina = 20;
+  const parcelasPaginadas = parcelas.slice(
+    (paginaAtual - 1) * porPagina,
+    paginaAtual * porPagina
+  );
+
   const handleNovo = () => {
-    setParcelaSelecionada(null); // Garante que o form vem vazio
+    setParcelaSelecionada(null);
     setIsModalOpen(true);
   };
 
-  const handleEditar = (item: any) => {
-    setParcelaSelecionada(item); // Preenche o form com os dados
+  const handleEditar = (item: ParcelaItem) => {
+    setParcelaSelecionada(item);
     setIsModalOpen(true);
   };
 
-  const handleSalvar = (dadosForm: any) => {
-    console.log("Salvando dados:", dadosForm);
-    // Aqui entraria a lógica de salvar no backend ou atualizar o estado
-    setIsModalOpen(false);
+  const handleExcluir = async (id: number) => {
+    if (confirm("Deseja excluir esta parcela?")) {
+      if (await deleteParcela(id)) refetch();
+    }
+  };
+
+  // Helper para converter data DD/MM/AAAA para YYYY-MM-DD
+  const parseDateToISO = (dateStr: string) => {
+    if (!dateStr) return null;
+    const [day, month, year] = dateStr.split("/");
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleSalvar = async (dadosForm: any) => {
+    // Limpa valor monetário "R$ 1.000,00" -> 1000.00
+    const valorNumerico =
+      typeof dadosForm.valor === "string"
+        ? Number(
+            dadosForm.valor
+              .replace("R$", "")
+              .replace(/\./g, "")
+              .replace(",", ".")
+              .trim()
+          )
+        : dadosForm.valor;
+
+    const dataVencimentoISO = parseDateToISO(dadosForm.datavencimento);
+    const dataPagamentoISO = parseDateToISO(dadosForm.datapagamento);
+
+    if (!dataVencimentoISO) {
+      alert("Data de vencimento inválida.");
+      return;
+    }
+
+    const payload: ParcelaPayload = {
+      codparcela: dadosForm.codparcela || null,
+      codcliente: idCliente,
+      numparcela: Number(dadosForm.numparcela),
+      valor: valorNumerico,
+      datavencimento: dataVencimentoISO,
+      tipo: dadosForm.tipo,
+      datapagamento: dataPagamentoISO,
+      pago: !!dataPagamentoISO, // Se tem data de pagamento, considera pago
+    };
+
+    if (await saveParcela(payload)) {
+      setIsModalOpen(false);
+      refetch();
+    }
   };
 
   return (
     <div className={styles.container}>
-      {/* Componente Modal Inserido Aqui */}
       <ModalParcela
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -101,10 +128,9 @@ export default function ParcelasPage() {
               <FiArrowLeft size={24} />
             </Link>
             <h1 className={styles.title} style={{ marginBottom: 0 }}>
-              RAZÃO SOCIAL DO CLIENTE
+              {cliente?.razaosocial || "CLIENTE"}
             </h1>
           </div>
-
           <button className={styles.primaryButton} onClick={handleNovo}>
             Novo <FiPlus size={18} />
           </button>
@@ -118,7 +144,7 @@ export default function ParcelasPage() {
               <tr>
                 <th>Nº Parcela</th>
                 <th>Valor</th>
-                <th>Data Vencimento</th>
+                <th>Vencimento</th>
                 <th>Tipo</th>
                 <th>Pago</th>
                 <th>Data Pagamento</th>
@@ -126,68 +152,90 @@ export default function ParcelasPage() {
               </tr>
             </thead>
             <tbody>
-              {dados.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.parcela}</td>
-                  <td>
-                    {Number(item.valor).toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })}
-                  </td>
-                  <td>{item.vencimento}</td>
-                  <td>{item.tipo}</td>
-                  <td>
-                    <span
-                      style={{
-                        color: item.pago ? "#00e676" : "#ff4444",
-                        fontWeight: "bold",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {item.pago ? "SIM" : "NÃO"}
-                    </span>
-                  </td>
-                  <td>{item.dataPagamento}</td>
-                  <td className={styles.actionsCell}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "center",
-                        gap: "5px",
-                      }}
-                    >
-                      <button
-                        className={styles.actionButton}
-                        style={{ padding: "8px", minWidth: "auto" }}
-                        title="Editar"
-                        onClick={() => handleEditar(item)} // <--- Ação de Editar
-                      >
-                        <FiEdit size={18} />
-                      </button>
-
-                      <button
-                        className={styles.deleteButton}
-                        style={{ padding: "8px" }}
-                        title="Excluir"
-                      >
-                        <FiTrash2 size={18} />
-                      </button>
-                    </div>
+              {loading && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: "center", padding: 20 }}>
+                    Carregando...
                   </td>
                 </tr>
-              ))}
+              )}
+
+              {!loading &&
+                parcelasPaginadas.map((item) => (
+                  <tr key={item.codparcela}>
+                    <td>{item.numparcela}</td>
+                    <td>
+                      {Number(item.valor).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })}
+                    </td>
+                    <td>
+                      {new Date(item.datavencimento).toLocaleDateString()}
+                    </td>
+                    <td>{item.tipo}</td>
+                    <td>
+                      <span
+                        style={{
+                          color: item.pago ? "#00e676" : "#ff4444",
+                          fontWeight: "bold",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {item.pago ? "SIM" : "NÃO"}
+                      </span>
+                    </td>
+                    <td>
+                      {item.datapagamento
+                        ? new Date(item.datapagamento).toLocaleDateString()
+                        : "-"}
+                    </td>
+                    <td className={styles.actionsCell}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "center",
+                          gap: "5px",
+                        }}
+                      >
+                        <button
+                          className={styles.actionButton}
+                          style={{ padding: "8px", minWidth: "auto" }}
+                          title="Editar"
+                          onClick={() => handleEditar(item)}
+                        >
+                          <FiEdit size={18} />
+                        </button>
+                        <button
+                          className={styles.deleteButton}
+                          style={{ padding: "8px" }}
+                          title="Excluir"
+                          onClick={() => handleExcluir(item.codparcela)}
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+              {!loading && parcelas.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: "center", padding: 20 }}>
+                    Nenhuma parcela encontrada.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Adicionei paginação aqui caso tenha esquecido */}
         <PaginationControls
-          paginaAtual={1}
-          totalPaginas={1}
-          totalElementos={dados.length}
-          porPagina={20}
-          onPageChange={() => {}}
+          paginaAtual={paginaAtual}
+          totalPaginas={Math.ceil(parcelas.length / porPagina) || 1}
+          totalElementos={parcelas.length}
+          porPagina={porPagina}
+          onPageChange={setPaginaAtual}
           onItemsPerPageChange={() => {}}
         />
       </div>

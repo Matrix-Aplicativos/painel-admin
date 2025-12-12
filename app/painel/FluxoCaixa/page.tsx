@@ -1,86 +1,115 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import styles from "@/app/src/components/Tabelas.module.css";
-import { FiEdit, FiTrash2, FiPlus } from "react-icons/fi";
-import SearchBar from "@/app/src/components/SearchBar";
+import { FiEdit, FiTrash2, FiPlus, FiSearch } from "react-icons/fi";
 import ModalMovimentacao from "@/app/src/components/modals/ModalMovimentacao";
 import PaginationControls from "@/app/src/components/PaginationControls";
 
-const MOCK_FLUXO = [
-  {
-    id: 1,
-    descricao: "Venda de Consultoria",
-    valor: 5000.0,
-    data: "2023-10-01",
-    categoria: "Receita",
-    subCategoria: "Serviços",
-    tipo: "entrada",
-  },
-  {
-    id: 2,
-    descricao: "Conta de Luz",
-    valor: -350.5,
-    data: "2023-10-05",
-    categoria: "Despesa Fixa",
-    subCategoria: "Energia",
-    tipo: "saida",
-  },
-  // ... outros mocks
-];
+// HOOKS
+
+import usePostMovimentacao, {
+  MovimentacaoPayload,
+} from "@/app/src/hooks/Financeiro/usePostMovimentacao";
+import useDeleteMovimentacao from "@/app/src/hooks/Financeiro/useDeleteMovimentacao";
+import useGetMovimentacoes from "@/app/src/hooks/Financeiro/useGetMovimentacao";
 
 export default function FluxoCaixaPage() {
-  const [dados, setDados] = useState<any[]>(MOCK_FLUXO);
-  const [busca, setBusca] = useState("");
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
+  // --- ESTADOS DE FILTRO (Inputs) ---
+  const [inputDescricao, setInputDescricao] = useState("");
+  const [inputCategoria, setInputCategoria] = useState("");
+  const [inputDataInicio, setInputDataInicio] = useState("");
+  const [inputDataFim, setInputDataFim] = useState("");
+
+  // --- ESTADOS DE FILTRO (Efetivos p/ Hook) ---
+  const [filtros, setFiltros] = useState({
+    descricao: "",
+    categoria: "",
+    dataInicio: "",
+    dataFim: "",
+  });
+
+  // --- HOOKS ---
+  // O hook recarrega sempre que 'filtros' muda
+  const { movimentacoes, loading, refetch } = useGetMovimentacoes(filtros);
+  const { saveMovimentacao } = usePostMovimentacao();
+  const { deleteMovimentacao } = useDeleteMovimentacao();
+
+  // Estados de Paginação e Modal
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
-
-  // 2. Estados do Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [movimentacaoSelecionada, setMovimentacaoSelecionada] = useState(null);
+  const [movimentacaoSelecionada, setMovimentacaoSelecionada] =
+    useState<any>(null);
 
-  const dadosFiltrados = useMemo(() => {
-    return dados.filter((item) => {
-      const matchTexto =
-        item.descricao.toLowerCase().includes(busca.toLowerCase()) ||
-        item.categoria.toLowerCase().includes(busca.toLowerCase());
-      const matchInicio = dataInicio ? item.data >= dataInicio : true;
-      const matchFim = dataFim ? item.data <= dataFim : true;
-      return matchTexto && matchInicio && matchFim;
+  // Paginação no Front (Supabase retorna tudo filtrado, paginamos a view)
+  const dadosPaginados = movimentacoes.slice(
+    (paginaAtual - 1) * porPagina,
+    paginaAtual * porPagina
+  );
+
+  // --- HANDLERS ---
+
+  const handleBuscar = () => {
+    setPaginaAtual(1);
+    setFiltros({
+      descricao: inputDescricao,
+      categoria: inputCategoria,
+      dataInicio: inputDataInicio,
+      dataFim: inputDataFim,
     });
-  }, [dados, busca, dataInicio, dataFim]);
+    // O useEffect do hook vai disparar o fetch automaticamente ao mudar 'filtros'
+  };
+
+  const handleNovaMovimentacao = () => {
+    setMovimentacaoSelecionada(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditarMovimentacao = (item: any) => {
+    // Ajuste aqui se seu Modal espera nomes de campos diferentes
+    setMovimentacaoSelecionada(item);
+    setIsModalOpen(true);
+  };
+
+  const handleExcluir = async (id: number) => {
+    if (confirm("Tem certeza que deseja excluir esta movimentação?")) {
+      if (await deleteMovimentacao(id)) {
+        refetch();
+      }
+    }
+  };
+
+  const handleSalvar = async (dadosModal: any) => {
+    // Mapeamento dos dados do Modal para o Payload do Supabase
+    // Certifique-se que o Modal devolve os dados corretos (ex: valor numérico, data ISO)
+    const payload: MovimentacaoPayload = {
+      codmovimentacao: movimentacaoSelecionada?.codmovimentacao || null,
+      descricao: dadosModal.descricao,
+      categoria: dadosModal.categoria,
+      subcategoria: dadosModal.subcategoria,
+      valor: Number(dadosModal.valor),
+      datapagamento: dadosModal.datapagamento, // YYYY-MM-DD
+    };
+
+    if (await saveMovimentacao(payload)) {
+      setIsModalOpen(false);
+      refetch();
+    }
+  };
 
   const formatMoney = (val: number) => {
     return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return "-";
     const [ano, mes, dia] = dateString.split("-");
     return `${dia}/${mes}/${ano}`;
   };
 
-  // 3. Handlers
-  const handleNovaMovimentacao = () => {
-    setMovimentacaoSelecionada(null); // Limpa para criar novo
-    setIsModalOpen(true);
-  };
-
-  const handleEditarMovimentacao = (item: any) => {
-    setMovimentacaoSelecionada(item); // Preenche para editar
-    setIsModalOpen(true);
-  };
-
-  const handleSalvar = (data: any) => {
-    console.log("Salvo:", data);
-    // Aqui você atualizaria o estado 'dados' ou chamaria a API
-    setIsModalOpen(false);
-  };
-
   return (
     <div className={styles.container}>
-      {/* 4. Componente Modal */}
       <ModalMovimentacao
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -90,43 +119,125 @@ export default function FluxoCaixaPage() {
 
       <h1 className={styles.title}>FLUXO DE CAIXA</h1>
 
-      <div className={styles.searchContainer}>
+      <div
+        className={styles.searchContainer}
+        style={{ flexWrap: "wrap", gap: "15px", alignItems: "flex-end" }}
+      >
+        {/* Input Descrição */}
         <div
-          style={{
-            display: "flex",
-            gap: "15px",
-            flexWrap: "wrap",
-            flexGrow: 1,
-            alignItems: "center",
-          }}
+          className={styles.inputWrapper}
+          style={{ flex: 2, minWidth: "200px" }}
         >
-          <SearchBar
-            placeholder="Buscar por descrição ou categoria"
-            onSearch={(val: string) => {
-              setBusca(val);
-              setPaginaAtual(1);
+          <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
+            Descrição
+          </label>
+          <input
+            type="text"
+            placeholder="Buscar descrição"
+            value={inputDescricao}
+            onChange={(e) => setInputDescricao(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
+            style={{
+              padding: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              width: "90%",
+              outline: "none",
             }}
           />
-          <div className={styles.filterGroup}>
-            <input
-              type="date"
-              className={styles.dateInput}
-              value={dataInicio}
-              onChange={(e) => setDataInicio(e.target.value)}
-            />
-            <input
-              type="date"
-              className={styles.dateInput}
-              value={dataFim}
-              onChange={(e) => setDataFim(e.target.value)}
-            />
-          </div>
         </div>
-        <div className={styles.searchActions}>
-          {/* Botão Atualizado */}
+
+        {/* Input Categoria */}
+        <div
+          className={styles.inputWrapper}
+          style={{ flex: 1, minWidth: "150px" }}
+        >
+          <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
+            Categoria
+          </label>
+          <input
+            type="text"
+            placeholder="Ex: Receita"
+            value={inputCategoria}
+            onChange={(e) => setInputCategoria(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
+            style={{
+              padding: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              width: "90%",
+              outline: "none",
+            }}
+          />
+        </div>
+
+        {/* Data Inicio */}
+        <div className={styles.inputWrapper} style={{ width: "140px" }}>
+          <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
+            Data Início
+          </label>
+          <input
+            type="date"
+            value={inputDataInicio}
+            onChange={(e) => setInputDataInicio(e.target.value)}
+            style={{
+              padding: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              width: "90%",
+              outline: "none",
+            }}
+          />
+        </div>
+
+        {/* Data Fim */}
+        <div className={styles.inputWrapper} style={{ width: "140px" }}>
+          <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
+            Data Fim
+          </label>
+          <input
+            type="date"
+            value={inputDataFim}
+            onChange={(e) => setInputDataFim(e.target.value)}
+            style={{
+              padding: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              width: "90%",
+              outline: "none",
+            }}
+          />
+        </div>
+
+        {/* Botão Buscar */}
+        <div style={{ display: "flex", alignItems: "flex-end" }}>
+          <button
+            className={styles.primaryButton}
+            onClick={handleBuscar}
+            style={{
+              backgroundColor: "#1769e3",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              gap: "5px",
+              height: "35px",
+            }}
+          >
+            Buscar <FiSearch color="#fff" />
+          </button>
+        </div>
+
+        {/* Botão Novo (Jogado pra direita) */}
+        <div className={styles.searchActions} style={{ marginLeft: "auto" }}>
           <button
             className={styles.primaryButton}
             onClick={handleNovaMovimentacao}
+            style={{
+              height: "35px",
+              display: "flex",
+              alignItems: "center",
+              gap: "5px",
+            }}
           >
             Nova Movimentação <FiPlus size={18} />
           </button>
@@ -140,16 +251,24 @@ export default function FluxoCaixaPage() {
               <tr>
                 <th>Descrição</th>
                 <th>Valor</th>
-                <th>Data</th>
+                <th>Data Pagamento</th>
                 <th>Categoria</th>
                 <th>Sub Categoria</th>
                 <th className={styles.actionsCell}>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {dadosFiltrados.length > 0 ? (
-                dadosFiltrados.map((item) => (
-                  <tr key={item.id}>
+              {loading && (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: "center", padding: 20 }}>
+                    Carregando...
+                  </td>
+                </tr>
+              )}
+
+              {!loading &&
+                dadosPaginados.map((item) => (
+                  <tr key={item.codmovimentacao}>
                     <td>{item.descricao}</td>
                     <td
                       className={
@@ -158,9 +277,9 @@ export default function FluxoCaixaPage() {
                     >
                       {formatMoney(item.valor)}
                     </td>
-                    <td>{formatDate(item.data)}</td>
+                    <td>{formatDate(item.datapagamento)}</td>
                     <td>{item.categoria}</td>
-                    <td>{item.subCategoria}</td>
+                    <td>{item.subcategoria}</td>
                     <td className={styles.actionsCell}>
                       <div
                         style={{
@@ -169,7 +288,6 @@ export default function FluxoCaixaPage() {
                           gap: "5px",
                         }}
                       >
-                        {/* Ação de Editar na Tabela */}
                         <button
                           className={styles.actionButton}
                           title="Editar"
@@ -177,25 +295,29 @@ export default function FluxoCaixaPage() {
                         >
                           <FiEdit />
                         </button>
-
-                        <button className={styles.deleteButton} title="Excluir">
+                        <button
+                          className={styles.deleteButton}
+                          title="Excluir"
+                          onClick={() => handleExcluir(item.codmovimentacao)}
+                        >
                           <FiTrash2 />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))
-              ) : (
+                ))}
+
+              {!loading && movimentacoes.length === 0 && (
                 <tr>
                   <td
                     colSpan={6}
                     style={{
                       textAlign: "center",
                       padding: "20px",
-                      color: "var(--text-placeholder-color)",
+                      color: "#999",
                     }}
                   >
-                    Nenhum lançamento encontrado.
+                    Nenhuma movimentação encontrada.
                   </td>
                 </tr>
               )}
@@ -205,8 +327,8 @@ export default function FluxoCaixaPage() {
 
         <PaginationControls
           paginaAtual={paginaAtual}
-          totalPaginas={1}
-          totalElementos={dadosFiltrados.length}
+          totalPaginas={Math.ceil(movimentacoes.length / porPagina) || 1}
+          totalElementos={movimentacoes.length}
           porPagina={porPagina}
           onPageChange={setPaginaAtual}
           onItemsPerPageChange={setPorPagina}

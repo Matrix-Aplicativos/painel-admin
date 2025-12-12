@@ -1,174 +1,518 @@
 "use client";
 
 import styles from "../DetalhesCliente.module.css";
-import { FiEdit2, FiTrash2, FiCheck, FiPlus } from "react-icons/fi";
-import { useParams } from "next/navigation"; // Para pegar o ID da URL
-import { useRouter } from "next/navigation";
+import { FiEdit2, FiTrash2, FiCheck, FiPlus, FiX } from "react-icons/fi";
+import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+
+// --- HOOKS DO CLIENTE ---
+import useGetClienteById from "@/app/src/hooks/Cliente/useGetClienteById";
+import usePostCliente, {
+  ClientePayload,
+} from "@/app/src/hooks/Cliente/usePostCliente";
+import useDeleteCliente from "@/app/src/hooks/Cliente/useDeleteCliente";
+
+// --- HOOKS DE CONTATO ---
+
+import usePostContato, {
+  ContatoPayload,
+} from "@/app/src/hooks/Contato/usePostContato";
+import useDeleteContato from "@/app/src/hooks/Contato/useDeleteContato";
+
+// --- HOOK DE PARCELA ---
+import useGetParcelas from "@/app/src/hooks/Financeiro/useGetParcelas";
+
+// --- MODAL ---
+import ModalContato from "@/app/src/components/modals/ModalContato";
+import useGetContatos, {
+  ContatoItem,
+} from "@/app/src/hooks/Contato/useGetContato";
 
 export default function ClientDetailsPage() {
-  const router = useRouter(); // <--- Hook
+  const router = useRouter();
   const params = useParams();
-  const id = params.id;
+  const id = Number(params.id);
+
+  // --- HOOKS CLIENTE ---
+  const { cliente, loading, refetch } = useGetClienteById(id);
+  const { saveCliente, loading: loadingSave } = usePostCliente();
+  const { deleteCliente, loading: loadingDelete } = useDeleteCliente();
+
+  // --- HOOKS CONTATO ---
+  const { contatos, refetch: refetchContatos } = useGetContatos(id);
+  const { saveContato } = usePostContato();
+  const { deleteContato } = useDeleteContato();
+
+  // --- HOOKS PARCELA ---
+  const { parcelas, loading: loadingParcelas } = useGetParcelas(id);
+
+  // --- ESTADOS ---
+  const [isEditing, setIsEditing] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<ContatoItem | null>(
+    null
+  );
+
+  const [formData, setFormData] = useState({
+    razaosocial: "",
+    cnpj: "",
+    cep: "",
+    endereco: "",
+    situacao: "1",
+    observacoes: "",
+  });
+
+  // Carrega dados do cliente no form
+  useEffect(() => {
+    if (cliente) {
+      setFormData({
+        razaosocial: cliente.razaosocial || "",
+        cnpj: cliente.cnpj || "",
+        cep: cliente.cep || "",
+        endereco: cliente.endereco || "",
+        situacao: cliente.situacao || "1",
+        observacoes: cliente.observacoes || "",
+      });
+    }
+  }, [cliente]);
+
+  // --- HANDLERS CLIENTE ---
+
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Botão Editar
+  const handleEditar = () => {
+    setIsEditing(true);
+  };
+
+  // Botão Cancelar (CORRIGIDO)
+  const handleCancelar = () => {
+    setIsEditing(false);
+    // Reseta os dados para o que veio do banco
+    if (cliente) {
+      setFormData({
+        razaosocial: cliente.razaosocial || "",
+        cnpj: cliente.cnpj || "",
+        cep: cliente.cep || "",
+        endereco: cliente.endereco || "",
+        situacao: cliente.situacao || "1",
+        observacoes: cliente.observacoes || "",
+      });
+    }
+  };
+
+  const handleSalvarCliente = async () => {
+    const payload: ClientePayload = {
+      codcliente: id,
+      razaosocial: formData.razaosocial,
+      cnpj: formData.cnpj,
+      cep: formData.cep,
+      endereco: formData.endereco,
+      observacoes: formData.observacoes,
+      situacao: formData.situacao,
+    };
+
+    if (await saveCliente(payload)) {
+      alert("Cliente atualizado!");
+      setIsEditing(false);
+      refetch();
+    }
+  };
+
+  const handleExcluirCliente = async () => {
+    if (confirm("Tem certeza que deseja excluir este cliente?")) {
+      if (await deleteCliente(id)) {
+        alert("Cliente excluído!");
+        router.push("/painel/Clientes");
+      }
+    }
+  };
+
+  // --- HANDLERS CONTATO ---
+
+  const handleOpenContactModal = (contato?: ContatoItem) => {
+    setSelectedContact(contato || null); // Se passar contato, é edição. Se não, novo.
+    setIsContactModalOpen(true);
+  };
+
+  const handleSaveContato = async (data: any) => {
+    const payload: ContatoPayload = {
+      codcontatocliente: selectedContact?.codcontatocliente || null,
+      codcliente: id,
+      nome: data.nome,
+      email: data.email,
+      telefone: data.telefone,
+    };
+
+    if (await saveContato(payload)) {
+      setIsContactModalOpen(false);
+      refetchContatos();
+    }
+  };
+
+  const handleDeleteContato = async (codContato: number) => {
+    if (confirm("Excluir este contato?")) {
+      if (await deleteContato(codContato)) {
+        refetchContatos();
+      }
+    }
+  };
 
   const handleVerParcelas = () => {
     router.push(`/painel/Clientes/${id}/Parcelas`);
   };
 
+  // Helpers de Status
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "1":
+        return "ATIVO";
+      case "2":
+        return "CANCELADO";
+      case "3":
+        return "EM NEGOCIAÇÃO";
+      case "4":
+        return "PROSPECÇÃO";
+      default:
+        return "DESCONHECIDO";
+    }
+  };
+
+  const getStatusClass = (status: string) => {
+    if (status === "1") return styles.statusBadge; // Verde (padrão)
+    return `${styles.statusBadge} ${styles.statusInactive}`; // Estilo diferente
+  };
+
+  if (loading) return <div className={styles.container}>Carregando...</div>;
+  if (!cliente)
+    return <div className={styles.container}>Cliente não encontrado.</div>;
+
   return (
     <div className={styles.container}>
-      {/* Título e Status */}
+      <ModalContato
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+        onSave={handleSaveContato}
+        initialData={selectedContact}
+      />
+
+      {/* HEADER */}
       <div className={styles.header}>
-        <h1 className={styles.title}>RAZÃO SOCIAL DO CLIENTE</h1>
-        <span className={styles.statusBadge}>ATIVO</span>
+        <h1 className={styles.title}>{cliente.razaosocial?.toUpperCase()}</h1>
+        <span
+          className={getStatusClass(cliente.situacao)}
+          style={
+            cliente.situacao !== "1"
+              ? { backgroundColor: "#ffebee", color: "#c62828" }
+              : {}
+          }
+        >
+          {getStatusLabel(cliente.situacao)}
+        </span>
       </div>
 
       <div className={styles.mainGrid}>
-        {/* COLUNA DA ESQUERDA (FORMULÁRIO) */}
+        {/* ESQUERDA: FORMULÁRIO CLIENTE */}
         <div className={styles.formSection}>
           <div className={styles.sectionTitle}>Dados de Cadastro</div>
 
           <div className={styles.formRow}>
             <div className={styles.inputGroup}>
               <label>Razão Social</label>
-              <input type="text" defaultValue="Razão Social da Empresa" />
+              <input
+                name="razaosocial"
+                type="text"
+                value={formData.razaosocial}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+              />
             </div>
             <div className={styles.inputGroup}>
               <label>CNPJ</label>
-              <input type="text" defaultValue="09.346.601/0001-25" />
+              <input
+                name="cnpj"
+                type="text"
+                value={formData.cnpj}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+              />
             </div>
           </div>
 
           <div className={styles.formRow}>
             <div className={styles.inputGroup} style={{ flex: 0.5 }}>
               <label>CEP</label>
-              <input type="text" defaultValue="78000-000" />
-            </div>
-            <div className={styles.inputGroup} style={{ flex: 0.8 }}>
-              <label>Cidade</label>
-              <input type="text" defaultValue="Cuiabá" />
+              <input
+                name="cep"
+                type="text"
+                value={formData.cep}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+              />
             </div>
             <div className={styles.inputGroup}>
-              <label>Endereço</label>
-              <input type="text" defaultValue="Jardim Cuiabá" />
+              <label>Endereço Completo</label>
+              <input
+                name="endereco"
+                type="text"
+                value={formData.endereco}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+              />
             </div>
           </div>
 
           <div className={styles.formRow}>
             <div className={styles.inputGroup}>
-              <label>Complemento</label>
-              <input type="text" defaultValue="Jardim Cuiabá" />
-            </div>
-            <div className={styles.inputGroup}>
               <label>Situação</label>
-              <select defaultValue="Ativo">
-                <option value="Ativo">Ativo</option>
-                <option value="Inativo">Inativo</option>
+              <select
+                name="situacao"
+                value={formData.situacao}
+                onChange={handleInputChange}
+                disabled={!isEditing}
+              >
+                <option value="1">Ativo</option>
+                <option value="2">Cancelado</option>
+                <option value="3">Em Negociação</option>
+                <option value="4">Prospecção</option>
               </select>
             </div>
           </div>
 
-          {/* Seção Contato */}
           <div
             className={styles.sectionTitle}
-            style={{ marginTop: "20px", border: "none" }}
+            style={{
+              marginTop: "20px",
+              border: "none",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
           >
-            Contato
-          </div>
-          <button className={styles.primaryButton}>
-             Novo <FiPlus size={18} />
-          </button>
+            <span>Contatos</span>
 
-          <div className={styles.contactHeader}>
+            {/* O Botão Novo Contato aparece APENAS SE estiver editando */}
+            {isEditing && (
+              <button
+                className={styles.primaryButton}
+                onClick={() => handleOpenContactModal()}
+                type="button"
+                style={{
+                  fontSize: "12px",
+                  padding: "4px 10px",
+                  height: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                Novo <FiPlus size={14} />
+              </button>
+            )}
+          </div>
+
+          {/* CABEÇALHO DA TABELA */}
+          <div
+            className={styles.contactHeader}
+            style={{
+              display: "flex",
+              padding: "10px 0",
+              borderBottom: "1px solid #eee",
+              fontWeight: "bold",
+            }}
+          >
+            <span style={{ flex: 1, fontSize: "12px", color: "#999" }}>
+              Nome
+            </span>
             <span style={{ flex: 1, fontSize: "12px", color: "#999" }}>
               E-mail
             </span>
             <span style={{ flex: 1, fontSize: "12px", color: "#999" }}>
               Telefone
             </span>
-            <span style={{ flex: 1, fontSize: "12px", color: "#999" }}>
-              Nome
-            </span>
+            {isEditing && (
+              <span
+                style={{
+                  width: "80px",
+                  fontSize: "12px",
+                  color: "#999",
+                  textAlign: "center",
+                }}
+              >
+                Ações
+              </span>
+            )}
           </div>
 
+          {/* LISTA DE ITENS */}
           <div className={styles.contactList}>
-            <div className={styles.contactItem}>
-              <a href="#" className={styles.contactLink}>
-                email@exemplo.com.br
-              </a>
-              <span className={styles.contactLink}>(65) 12345-6789</span>
-              <span className={styles.contactLink}>Nome da Pessoa</span>
-            </div>
-            <div className={styles.contactItem}>
-              <a href="#" className={styles.contactLink}>
-                email@exemplo.com.br
-              </a>
-              <span className={styles.contactLink}>(65) 12345-6789</span>
-              <span className={styles.contactLink}>Nome da Pessoa</span>
-            </div>
+            {contatos.map((ct) => (
+              <div
+                key={ct.codcontatocliente}
+                className={styles.contactItem}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "10px 0",
+                  borderBottom: "1px solid #f5f5f5",
+                }}
+              >
+                <span className={styles.contactLink} style={{ flex: 1 }}>
+                  {ct.nome}
+                </span>
+                <a
+                  href={`mailto:${ct.email}`}
+                  className={styles.contactLink}
+                  style={{ flex: 1, color: "#1769e3", textDecoration: "none" }}
+                >
+                  {ct.email}
+                </a>
+                <span className={styles.contactLink} style={{ flex: 1 }}>
+                  {ct.telefone}
+                </span>
+
+                {isEditing && (
+                  <div
+                    style={{
+                      width: "80px",
+                      display: "flex",
+                      gap: 10,
+                      justifyContent: "center",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleOpenContactModal(ct)}
+                      style={{
+                        border: "none",
+                        background: "none",
+                        cursor: "pointer",
+                        color: "#1769e3",
+                      }}
+                      title="Editar"
+                    >
+                      <FiEdit2 size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteContato(ct.codcontatocliente)}
+                      style={{
+                        border: "none",
+                        background: "none",
+                        cursor: "pointer",
+                        color: "#d32f2f",
+                      }}
+                      title="Excluir"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {contatos.length === 0 && (
+              <p style={{ fontSize: 12, color: "#999", padding: 10 }}>
+                Nenhum contato cadastrado.
+              </p>
+            )}
           </div>
 
-          {/* Seção Observações */}
+          {/* OBSERVAÇÕES */}
           <div className={styles.sectionTitle} style={{ marginTop: "30px" }}>
             Observações
           </div>
           <div className={styles.inputGroup}>
-            <textarea placeholder="Digite suas observações aqui..."></textarea>
+            <textarea
+              name="observacoes"
+              value={formData.observacoes}
+              onChange={handleInputChange}
+              disabled={!isEditing}
+              placeholder="Digite suas observações aqui..."
+            ></textarea>
           </div>
         </div>
 
-        {/* COLUNA DA DIREITA (BOTÕES E FINANCEIRO) */}
+        {/* DIREITA: ACTIONS & FINANCEIRO */}
         <div className={styles.sidebarSection}>
-          {/* Botões de Ação */}
+          {/* Lógica de Botões: Toggle entre Editar/Excluir e Salvar/Cancelar */}
           <div className={styles.actionButtons}>
-            <div className={styles.buttonRow}>
-              <button className={`${styles.btnAction} ${styles.btnEdit}`}>
-                Editar <FiEdit2 />
-              </button>
-              <button className={`${styles.btnAction} ${styles.btnDelete}`}>
-                Excluir <FiTrash2 />
-              </button>
-            </div>
-            <div className={styles.buttonRow}>
-              <button className={`${styles.btnAction} ${styles.btnSave}`}>
-                Salvar <FiCheck />
-              </button>
-              <button className={`${styles.btnAction} ${styles.btnCancel}`}>
-                Cancelar <FiTrash2 />
-              </button>
-            </div>
+            {!isEditing ? (
+              <div className={styles.buttonRow}>
+                <button
+                  className={`${styles.btnAction} ${styles.btnEdit}`}
+                  onClick={handleEditar}
+                  disabled={loadingDelete}
+                >
+                  Editar <FiEdit2 />
+                </button>
+                <button
+                  className={`${styles.btnAction} ${styles.btnDelete}`}
+                  onClick={handleExcluirCliente}
+                  disabled={loadingDelete}
+                >
+                  Excluir <FiTrash2 />
+                </button>
+              </div>
+            ) : (
+              <div className={styles.buttonRow}>
+                <button
+                  className={`${styles.btnAction} ${styles.btnSave}`}
+                  onClick={handleSalvarCliente}
+                  disabled={loadingSave}
+                >
+                  Salvar <FiCheck />
+                </button>
+                <button
+                  className={`${styles.btnAction} ${styles.btnCancel}`}
+                  onClick={handleCancelar} // <--- Aqui chamamos a função corrigida
+                  disabled={loadingSave}
+                >
+                  Cancelar <FiX />
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Lista de Pagamentos */}
+          {/* LISTA DE PARCELAS */}
           <div className={styles.paymentSection}>
             <h3>Pagamentos em Aberto</h3>
-
             <div className={`${styles.paymentRow} ${styles.paymentHeader}`}>
-              <span>Nº</span>
               <span>Vencimento</span>
-              <span>Tipo</span>
               <span>Valor</span>
+              <span>Tipo</span>
             </div>
 
             <div className={styles.paymentList}>
-              <div className={styles.paymentRow}>
-                <span>1</span>
-                <span>10/10/2025</span>
-                <span>Ativação</span>
-                <span>R$700,00</span>
-              </div>
-              <div className={styles.paymentRow}>
-                <span>2</span>
-                <span>10/10/2025</span>
-                <span>Manutenção</span>
-                <span>R$200,00</span>
-              </div>
+              {loadingParcelas && (
+                <p style={{ fontSize: 12, padding: 10 }}>Carregando...</p>
+              )}
+              {!loadingParcelas && parcelas.length === 0 && (
+                <p style={{ fontSize: 12, padding: 10 }}>
+                  Nenhuma parcela em aberto.
+                </p>
+              )}
+
+              {parcelas.map((p) => (
+                <div key={p.codparcela} className={styles.paymentRow}>
+                  <span>{new Date(p.datavencimento).toLocaleDateString()}</span>
+                  <span>R$ {Number(p.valor).toFixed(2)}</span>
+                  <span>{p.tipo}</span>
+                </div>
+              ))}
             </div>
 
             <button
               className={styles.btnViewParcels}
-              onClick={handleVerParcelas} // <--- Adicione o onClick
+              onClick={handleVerParcelas}
             >
-              Ver Parcelas
+              Ver Todas as Parcelas
             </button>
           </div>
         </div>

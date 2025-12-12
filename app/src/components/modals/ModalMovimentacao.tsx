@@ -10,20 +10,20 @@ import {
 } from "react-icons/fi";
 
 interface MovimentacaoData {
-  id?: number;
+  codmovimentacao?: number | null;
   descricao: string;
   valor: string | number;
-  data: string;
+  datapagamento: string;
   categoria: string;
-  subCategoria: string;
-  tipo: "entrada" | "saida";
+  subcategoria: string;
+  tipo?: "entrada" | "saida";
 }
 
 interface ModalMovimentacaoProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: MovimentacaoData) => void;
-  initialData?: MovimentacaoData | null;
+  initialData?: any;
 }
 
 export default function ModalMovimentacao({
@@ -35,13 +35,12 @@ export default function ModalMovimentacao({
   const [formData, setFormData] = useState<MovimentacaoData>({
     descricao: "",
     valor: "",
-    data: "",
+    datapagamento: "",
     categoria: "",
-    subCategoria: "",
+    subcategoria: "",
     tipo: "entrada",
   });
 
-  // Máscara de Moeda
   const maskCurrency = (value: string) => {
     const cleanValue = value.replace(/\D/g, "");
     if (!cleanValue) return "";
@@ -55,25 +54,29 @@ export default function ModalMovimentacao({
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
-        // Se for edição, formata o valor para exibir com R$
+        const valorRaw = Number(initialData.valor);
+        const isSaida = valorRaw < 0;
+        const valorAbs = Math.abs(valorRaw);
+
         setFormData({
-          ...initialData,
-          valor:
-            typeof initialData.valor === "number"
-              ? initialData.valor.toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                })
-              : initialData.valor,
+          codmovimentacao: initialData.codmovimentacao,
+          descricao: initialData.descricao || "",
+          valor: valorAbs.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          }),
+          datapagamento: initialData.datapagamento || "",
+          categoria: initialData.categoria || "",
+          subcategoria: initialData.subcategoria || "",
+          tipo: isSaida ? "saida" : "entrada",
         });
       } else {
-        // Novo registro
         setFormData({
           descricao: "",
           valor: "",
-          data: new Date().toISOString().split("T")[0], // Data de hoje YYYY-MM-DD
+          datapagamento: new Date().toISOString().split("T")[0],
           categoria: "",
-          subCategoria: "",
+          subcategoria: "",
           tipo: "entrada",
         });
       }
@@ -93,7 +96,25 @@ export default function ModalMovimentacao({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    let valorFinal =
+      typeof formData.valor === "string"
+        ? Number(
+            formData.valor
+              .replace("R$", "")
+              .replace(/\./g, "")
+              .replace(",", ".")
+              .trim()
+          )
+        : formData.valor;
+
+    if (formData.tipo === "saida") {
+      valorFinal = valorFinal * -1;
+    }
+
+    onSave({
+      ...formData,
+      valor: valorFinal,
+    });
   };
 
   if (!isOpen) return null;
@@ -111,7 +132,6 @@ export default function ModalMovimentacao({
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
-          {/* Descrição */}
           <div className={styles.inputGroup}>
             <label>Descrição</label>
             <input
@@ -124,7 +144,6 @@ export default function ModalMovimentacao({
             />
           </div>
 
-          {/* Valor e Data */}
           <div className={styles.formRow}>
             <div className={styles.inputGroup}>
               <label>Valor</label>
@@ -140,44 +159,39 @@ export default function ModalMovimentacao({
             <div className={styles.inputGroup}>
               <label>Data</label>
               <input
-                name="data"
+                name="datapagamento" 
                 type="date"
-                value={formData.data}
+                value={formData.datapagamento}
                 onChange={handleChange}
                 required
               />
             </div>
           </div>
 
-          {/* Categoria e Sub */}
           <div className={styles.formRow}>
             <div className={styles.inputGroup}>
               <label>Categoria</label>
-              <select
+              <input
                 name="categoria"
+                type="text" 
+                placeholder="Ex: Receita"
                 value={formData.categoria}
                 onChange={handleChange}
                 required
-              >
-                <option value="">Selecione</option>
-                <option value="Receita">Receita</option>
-                <option value="Despesa Fixa">Despesa Fixa</option>
-                <option value="Despesa Variável">Despesa Variável</option>
-              </select>
+              />
             </div>
             <div className={styles.inputGroup}>
               <label>Sub Categoria</label>
               <input
-                name="subCategoria"
+                name="subcategoria" 
                 type="text"
-                placeholder="Ex: Energia, Aluguel"
-                value={formData.subCategoria}
+                placeholder="Ex: Energia"
+                value={formData.subcategoria}
                 onChange={handleChange}
               />
             </div>
           </div>
 
-          {/* Tipo (Botões) */}
           <div className={styles.inputGroup}>
             <label>Tipo de Movimentação</label>
             <div className={styles.typeSelector}>

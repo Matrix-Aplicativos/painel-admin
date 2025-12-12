@@ -16,7 +16,7 @@ interface ModalNovoFuncionarioProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: FuncionarioData) => void;
-  empresaId?: number | string;
+  empresaId?: number | string; 
   initialData?: any;
 }
 
@@ -38,22 +38,21 @@ export default function ModalNovoFuncionario({
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
-        // Carrega dados existentes para edição
         setFormData({
           nome: initialData.nome || "",
           cpf: initialData.cpf || "",
           email: initialData.email || "",
           codErp: initialData.codFuncionarioErp || "",
-          codEmpresa: initialData.codEmpresa || empresaId || "",
+          codEmpresa:
+            initialData.codEmpresa !== undefined ? initialData.codEmpresa : "",
         });
       } else {
-        // Limpa para novo cadastro
         setFormData({
           nome: "",
           cpf: "",
           email: "",
           codErp: "",
-          codEmpresa: empresaId || "",
+          codEmpresa: empresaId !== undefined ? empresaId : "",
         });
       }
     }
@@ -71,7 +70,13 @@ export default function ModalNovoFuncionario({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     let finalValue = value;
+
     if (name === "cpf") finalValue = maskCPF(value);
+
+    if (name === "codEmpresa") {
+      finalValue = value;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: finalValue }));
   };
 
@@ -104,20 +109,18 @@ export default function ModalNovoFuncionario({
               value={formData.nome}
               onChange={handleChange}
               required
-              // Habilitado para edição
             />
           </div>
 
           <div className={styles.formRow}>
             <div className={styles.inputGroup}>
-              <label>CPF</label>
+              <label>CPF (Opcional)</label>
               <input
                 name="cpf"
                 type="text"
                 placeholder="000.000.000-00"
                 value={formData.cpf}
                 onChange={handleChange}
-                required
               />
             </div>
             <div className={styles.inputGroup}>
