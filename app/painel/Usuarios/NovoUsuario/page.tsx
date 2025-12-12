@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { FiCheck, FiPlus, FiTrash2, FiEye, FiSlash } from "react-icons/fi";
+import { FiCheck, FiPlus, FiTrash2 } from "react-icons/fi";
 import styles from "./NovoUsuario.module.css";
 import tableStyles from "@/app/src/components/Tabelas.module.css";
 import PaginationControls from "@/app/src/components/PaginationControls";
@@ -19,11 +19,9 @@ export default function NewUserPage() {
     nome: "",
     login: "",
     email: "",
-    senha: "",
-    confirmSenha: "",
+    // Senha removida do state inicial pois será gerada no submit
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [empresasVinculadas, setEmpresasVinculadas] = useState<any[]>([]);
   const [selectedCargos, setSelectedCargos] = useState<number[]>([]);
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -101,21 +99,21 @@ export default function NewUserPage() {
   };
 
   const handleSalvarUsuario = async () => {
-    if (formData.senha !== formData.confirmSenha) {
-      alert("As senhas não conferem!");
-      return;
-    }
-    if (!formData.nome || !formData.login || !formData.senha) {
-      alert("Preencha os campos obrigatórios (Nome, Login e Senha)!");
+    // Validação Básica
+    if (!formData.nome || !formData.login) {
+      alert("Preencha os campos obrigatórios (Nome e Login)!");
       return;
     }
 
+    // Geração da Senha Automática (3 primeiros chars do login)
+    const senhaGerada = formData.login.substring(0, 3);
+
     const payload: any = {
-      codUsuario: null,
+      codUsuario: null, // Alterado para null conforme solicitado
       nome: formData.nome,
       email: formData.email,
       login: formData.login,
-      senha: formData.senha,
+      senha: senhaGerada, // Senha gerada automaticamente
       primeiroAcesso: true,
       ativo: true,
       cargos: selectedCargos,
@@ -196,60 +194,18 @@ export default function NewUserPage() {
           </div>
         </div>
 
-        <div className={styles.inputRow}>
-          <div className={styles.inputWrapper}>
-            <label>Senha *</label>
-            <div style={{ position: "relative" }}>
-              <input
-                name="senha"
-                type={showPassword ? "text" : "password"}
-                placeholder="Senha"
-                value={formData.senha}
-                onChange={handleInputChange}
-                style={{ width: "100%", paddingRight: "35px" }}
-              />
-              <div
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: "absolute",
-                  right: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  cursor: "pointer",
-                  color: "#666",
-                }}
-              >
-                {showPassword ? <FiSlash /> : <FiEye />}
-              </div>
-            </div>
-          </div>
-          <div className={styles.inputWrapper}>
-            <label>Confirmar Senha *</label>
-            <div style={{ position: "relative" }}>
-              <input
-                name="confirmSenha"
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirme a senha"
-                value={formData.confirmSenha}
-                onChange={handleInputChange}
-                style={{ width: "100%", paddingRight: "35px" }}
-              />
-              <div
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                style={{
-                  position: "absolute",
-                  right: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  cursor: "pointer",
-                  color: "#666",
-                }}
-              >
-                {showConfirmPassword ? <FiSlash /> : <FiEye />}
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Aviso sobre a senha automática */}
+        <p
+          style={{
+            fontSize: "12px",
+            color: "#666",
+            marginTop: "5px",
+            fontStyle: "italic",
+          }}
+        >
+          * A senha inicial será gerada automaticamente com os 3 primeiros
+          dígitos do login.
+        </p>
       </div>
     </>
   );

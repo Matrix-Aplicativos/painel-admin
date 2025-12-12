@@ -14,40 +14,32 @@ import {
 import styles from "../DetalhesUsuario.module.css";
 import tableStyles from "@/app/src/components/Tabelas.module.css";
 import PaginationControls from "@/app/src/components/PaginationControls";
+
+// --- MODAIS ---
 import ModalNovoCargo from "@/app/src/components/modals/ModalNovoCargo";
 import ModalNovoFuncionario from "@/app/src/components/modals/ModalNovoFuncionario";
-import ModalVincularEmpresa from "@/app/src/components/modals/ModalEmpresas";
+
+// --- HOOKS E AXIOS ---
+
 import useGetUsuarioById, {
   UsuarioDetalhe,
 } from "@/app/src/hooks/Usuario/useGetUsuarioById";
 import useDeleteUsuario from "@/app/src/hooks/Usuario/useDeleteUsuario";
 import usePostUsuario from "@/app/src/hooks/Usuario/usePostUsuario";
 import usePostResetarSenha from "@/app/src/hooks/Usuario/usePostResetarSenha";
+import usePostUsuarioEmpresa from "@/app/src/hooks/Usuario/usePostUsuarioEmpresa";
+import useDeleteUsuarioEmpresa from "@/app/src/hooks/Usuario/useDeleteUsuarioEmpresa";
 import useGetCargo, { CargoItem } from "@/app/src/hooks/Cargo/useGetCargo";
+import axiosInstance from "@/app/src/hooks/axiosInstance";
+import ModalVincularEmpresa from "@/app/src/components/modals/ModalEmpresas";
 
 export default function UserDetailsPage() {
-  //Declaração de todos os useStates
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<Partial<UsuarioDetalhe>>({});
-  const [selectedCargos, setSelectedCargos] = useState<number[]>([]);
-  const [paginaAtual, setPaginaAtual] = useState(1);
-  const [porPagina, setPorPagina] = useState(20);
-  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
-  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
-  const [isFuncionarioModalOpen, setIsFuncionarioModalOpen] = useState(false);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<number | string>(
-    ""
-  );
-
-  //Declaração de Funções e Lógica
   const params = useParams();
   const router = useRouter();
   const id = Number(params.id);
 
+  // 1. HOOKS DE DADOS (Executados primeiro para ter os dados disponíveis)
   const { usuario, loading, error, refetch } = useGetUsuarioById(id);
-  const { deleteUsuario, loading: loadingDelete } = useDeleteUsuario();
-  const { createUsuario, loading: loadingSave } = usePostUsuario();
-  const { resetarSenha, loading: loadingReset } = usePostResetarSenha();
 
   const {
     cargos,
@@ -60,24 +52,16 @@ export default function UserDetailsPage() {
     orderBy: "nome",
   });
 
-  useEffect(() => {
-    if (usuario) {
-      setFormData({
-        codUsuario: usuario.codUsuario,
-        nome: usuario.nome,
-        login: usuario.login,
-        email: usuario.email,
-        ativo: usuario.ativo,
-      });
-    }
-  }, [usuario]);
-
+  // 2. USE MEMO (Definido LOGO APÓS receber 'cargos' para evitar erro de inicialização)
   const { cargosMovix, cargosFdv, cargosOutros } = useMemo(() => {
     const movix: CargoItem[] = [];
     const fdv: CargoItem[] = [];
     const outros: CargoItem[] = [];
 
-    cargos.forEach((cargo) => {
+    // Proteção contra undefined (caso a API ainda não tenha respondido)
+    const listaCargos = cargos || [];
+
+    listaCargos.forEach((cargo) => {
       const nome = cargo.nome.toUpperCase();
       if (nome.includes("MOVIX")) {
         movix.push(cargo);
@@ -91,12 +75,36 @@ export default function UserDetailsPage() {
     return { cargosMovix: movix, cargosFdv: fdv, cargosOutros: outros };
   }, [cargos]);
 
-  const handleEditar = () => {
-    setIsEditing(true);
-  };
+  // 3. HOOKS DE AÇÃO
+  const { deleteUsuario, loading: loadingDelete } = useDeleteUsuario();
+  const { createUsuario, loading: loadingSave } = usePostUsuario();
+  const { resetarSenha, loading: loadingReset } = usePostResetarSenha();
+  const { vincularUsuarioEmpresa, loading: loadingVincular } =
+    usePostUsuarioEmpresa();
+  const { desvincularUsuarioEmpresa, loading: loadingDesvincular } =
+    useDeleteUsuarioEmpresa();
 
-  const handleCancelarEdicao = () => {
-    setIsEditing(false);
+  // 4. ESTADOS (States)
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<Partial<UsuarioDetalhe>>({});
+  const [selectedCargos, setSelectedCargos] = useState<number[]>([]);
+
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [porPagina, setPorPagina] = useState(20);
+
+  // Estados dos Modais
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
+  const [isFuncionarioModalOpen, setIsFuncionarioModalOpen] = useState(false);
+
+  // Controle de Vínculo de Empresa
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | string>(
+    ""
+  );
+  const [existingFuncionario, setExistingFuncionario] = useState<any>(null);
+
+  // 5. EFEITOS (UseEffect)
+  useEffect(() => {
     if (usuario) {
       setFormData({
         codUsuario: usuario.codUsuario,
@@ -105,10 +113,34 @@ export default function UserDetailsPage() {
         email: usuario.email,
         ativo: usuario.ativo,
       });
+
+      // Popula os cargos do usuário quando os dados chegam
+      if (usuario.cargos && Array.isArray(usuario.cargos)) {
+        const cargosIds = usuario.cargos.map((c) => c.codCargo);
+        setSelectedCargos(cargosIds);
+      }
+    }
+  }, [usuario]);
+
+  // --- HANDLERS: EDIÇÃO DO USUÁRIO ---
+
+  const handleInputChange = (field: keyof UsuarioDetalhe, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEdit = () => setIsEditing(true);
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    if (usuario) {
+      setFormData(usuario); // Reseta formulário
+      if (usuario.cargos) {
+        setSelectedCargos(usuario.cargos.map((c) => c.codCargo)); // Reseta cargos
+      }
     }
   };
 
-  const handleSalvarEdicao = async () => {
+  const handleSaveEdit = async () => {
     const payload: any = {
       codUsuario: id,
       nome: formData.nome || "",
@@ -116,6 +148,7 @@ export default function UserDetailsPage() {
       login: formData.login || "",
       primeiroAcesso: usuario?.primeiroAcesso || false,
       ativo: formData.ativo !== undefined ? formData.ativo : true,
+      cargos: selectedCargos, // Manda lista de cargos atualizada
     };
 
     const sucesso = await createUsuario(payload);
@@ -129,15 +162,10 @@ export default function UserDetailsPage() {
 
   const handleToggleAtivo = async () => {
     if (!usuario) return;
-
     const novoStatus = !usuario.ativo;
     const acao = novoStatus ? "ativar" : "desativar";
 
-    const confirmacao = window.confirm(
-      `Deseja realmente ${acao} este usuário?`
-    );
-
-    if (confirmacao) {
+    if (confirm(`Deseja realmente ${acao} este usuário?`)) {
       const payload: any = {
         codUsuario: id,
         nome: usuario.nome,
@@ -145,96 +173,153 @@ export default function UserDetailsPage() {
         login: usuario.login,
         primeiroAcesso: usuario.primeiroAcesso,
         ativo: novoStatus,
+        cargos: selectedCargos,
       };
-
       const sucesso = await createUsuario(payload);
-      if (sucesso) {
-        refetch();
-      }
+      if (sucesso) refetch();
     }
   };
 
-  const handleResetarSenha = async () => {
+  const handleResetPassword = async () => {
     if (!usuario?.login) return;
-
-    const confirmacao = window.confirm(
-      `Deseja resetar a senha do usuário ${usuario.login}? A nova senha será os 3 primeiros dígitos do login.`
-    );
-
-    if (confirmacao) {
-      const sucesso = await resetarSenha(usuario.login);
-      if (sucesso) {
+    if (
+      confirm(
+        `Deseja resetar a senha? A nova senha será os 3 primeiros dígitos do login.`
+      )
+    ) {
+      if (await resetarSenha(usuario.login))
         alert("Senha resetada com sucesso!");
-      }
     }
   };
 
-  const handleExcluir = async () => {
-    const confirmacao = window.confirm(
-      "Deseja realmente excluir este usuário? Esta ação não pode ser desfeita."
-    );
-
-    if (confirmacao) {
-      const sucesso = await deleteUsuario(id);
-      if (sucesso) {
-        alert("Usuário excluído com sucesso!");
-        router.push("/painel/Usuarios");
-      }
+  const handleDeleteUser = async () => {
+    if (confirm("Deseja realmente excluir este usuário?")) {
+      if (await deleteUsuario(id)) router.push("/painel/Usuarios");
     }
   };
 
-  const handleInputChange = (field: keyof UsuarioDetalhe, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+  // --- HANDLERS: CARGOS ---
 
   const handleToggleCargo = (codCargo: number) => {
     if (!isEditing) return;
-
     setSelectedCargos((prev) => {
-      if (prev.includes(codCargo)) {
-        return prev.filter((id) => id !== codCargo);
-      } else {
-        return [...prev, codCargo];
-      }
+      if (prev.includes(codCargo)) return prev.filter((id) => id !== codCargo);
+      return [...prev, codCargo];
     });
   };
 
-  const handleCargoCreated = () => {
+  const handleCargoSuccess = () => {
     setIsRoleModalOpen(false);
     refetchCargos();
   };
 
-  const handleVincularEmpresa = (empresa: any) => {
-    console.log("Vincular:", empresa);
+  // --- HANDLERS: EMPRESA E FUNCIONÁRIO ---
+
+  const handleSelectCompany = async (empresa: any) => {
     setIsCompanyModalOpen(false);
+    setSelectedCompanyId(empresa.codEmpresa);
+
+    try {
+      // Verifica se já existe funcionário vinculado
+      const response = await axiosInstance.get(
+        `/usuario/funcionario/${id}/${empresa.codEmpresa}`
+      );
+      const funcionariosEncontrados = response.data;
+
+      if (funcionariosEncontrados && funcionariosEncontrados.length > 0) {
+        setExistingFuncionario(funcionariosEncontrados[0]);
+      } else {
+        setExistingFuncionario(null);
+      }
+      setIsFuncionarioModalOpen(true);
+    } catch (err) {
+      console.error("Erro ao verificar funcionário:", err);
+      setExistingFuncionario(null);
+      setIsFuncionarioModalOpen(true);
+    }
   };
 
-  const handleOpenFuncionarioModal = (empresaId: number) => {
-    setSelectedCompanyId(empresaId);
-    setIsFuncionarioModalOpen(true);
+  const handleSaveFuncionario = async (dadosModal: any) => {
+    if (!usuario || !selectedCompanyId) return;
+
+    let cadastroPayload;
+
+    if (existingFuncionario) {
+      // Edita Existente
+      cadastroPayload = {
+        codFuncionario: existingFuncionario.codFuncionario,
+        codEmpresa: existingFuncionario.codEmpresa,
+        codFuncionarioErp: dadosModal.codErp,
+        nome: dadosModal.nome,
+        cpf: dadosModal.cpf,
+        email: dadosModal.email,
+        ativo: true,
+      };
+    } else {
+      // Cria Novo
+      cadastroPayload = {
+        codFuncionario: null, // NULL indica novo
+        codEmpresa: Number(selectedCompanyId),
+        codFuncionarioErp: dadosModal.codErp,
+        nome: dadosModal.nome,
+        cpf: dadosModal.cpf,
+        email: dadosModal.email,
+        ativo: true,
+      };
+    }
+
+    const payload = {
+      codUsuario: usuario.codUsuario,
+      codEmpresa: Number(selectedCompanyId),
+      ativo: true,
+      cadastroFuncionario: cadastroPayload,
+    };
+
+    const sucesso = await vincularUsuarioEmpresa(payload);
+
+    if (sucesso) {
+      alert("Operação realizada com sucesso!");
+      setIsFuncionarioModalOpen(false);
+      setExistingFuncionario(null);
+      refetch();
+    }
   };
 
-  const handleSaveFuncionario = (data: any) => {
-    console.log("Funcionario Salvo:", data);
-    setIsFuncionarioModalOpen(false);
+  const handleUnlinkCompany = async (codEmpresa: number) => {
+    if (confirm("Remover o vínculo com esta empresa?")) {
+      if (await desvincularUsuarioEmpresa(id, codEmpresa)) refetch();
+    }
   };
 
-  const listaEmpresas = usuario?.empresas || [];
+  // --- RENDERIZAÇÃO ---
+
+  if (loading)
+    return (
+      <div className={styles.container}>
+        <p>Carregando dados...</p>
+      </div>
+    );
+  if (error || !usuario)
+    return (
+      <div className={styles.container}>
+        <p>Erro ao carregar usuário.</p>
+      </div>
+    );
+
+  const listaEmpresas = usuario.empresas || [];
   const totalEmpresas = listaEmpresas.length;
   const empresasPaginadas = listaEmpresas.slice(
     (paginaAtual - 1) * porPagina,
     paginaAtual * porPagina
   );
 
-  //Declaração de Funções de renderização
-  const renderCargoList = (lista: CargoItem[]) => {
+  const renderCargoColumn = (lista: CargoItem[]) => {
     if (lista.length === 0)
       return (
         <p style={{ fontSize: "12px", color: "#999", fontStyle: "italic" }}>
           Nenhum cargo.
         </p>
       );
-
     return lista.map((cargo) => (
       <label key={cargo.codCargo} className={styles.checkboxItem}>
         <input
@@ -252,63 +337,81 @@ export default function UserDetailsPage() {
     ));
   };
 
-  const renderHeader = () => (
-    <div className={styles.header}>
-      <div className={styles.titleArea}>
-        <h1 className={styles.title}>{usuario?.nome?.toUpperCase()}</h1>
-        <span
-          className={`${styles.statusBadge} ${
-            usuario?.ativo
-              ? tableStyles.statusCompleted
-              : tableStyles.statusNotStarted
-          }`}
-        >
-          {usuario?.ativo ? "ATIVO" : "INATIVO"}
-        </span>
+  return (
+    <div className={styles.container}>
+      <ModalNovoCargo
+        isOpen={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+        onSuccess={handleCargoSuccess}
+      />
+      <ModalVincularEmpresa
+        isOpen={isCompanyModalOpen}
+        onClose={() => setIsCompanyModalOpen(false)}
+        onVincular={handleSelectCompany}
+      />
+      <ModalNovoFuncionario
+        isOpen={isFuncionarioModalOpen}
+        onClose={() => setIsFuncionarioModalOpen(false)}
+        onSave={handleSaveFuncionario}
+        empresaId={selectedCompanyId}
+        initialData={existingFuncionario}
+      />
+
+      {/* HEADER */}
+      <div className={styles.header}>
+        <div className={styles.titleArea}>
+          <h1 className={styles.title}>{usuario.nome?.toUpperCase()}</h1>
+          <span
+            className={`${styles.statusBadge} ${
+              usuario.ativo
+                ? tableStyles.statusCompleted
+                : tableStyles.statusNotStarted
+            }`}
+          >
+            {usuario.ativo ? "ATIVO" : "INATIVO"}
+          </span>
+        </div>
+
+        <div className={styles.headerButtons}>
+          {!isEditing ? (
+            <div className={styles.buttonRow}>
+              <button
+                className={`${styles.btn} ${styles.btnBlue}`}
+                onClick={handleEdit}
+                disabled={loadingDelete}
+              >
+                Editar <FiEdit2 />
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnRed}`}
+                onClick={handleDeleteUser}
+                disabled={loadingDelete}
+              >
+                {loadingDelete ? "..." : "Excluir"} <FiTrash2 />
+              </button>
+            </div>
+          ) : (
+            <div className={styles.buttonRow}>
+              <button
+                className={`${styles.btn} ${styles.btnGreen}`}
+                onClick={handleSaveEdit}
+                disabled={loadingSave}
+              >
+                Salvar <FiCheck />
+              </button>
+              <button
+                className={`${styles.btn} ${styles.btnRed}`}
+                onClick={handleCancelEdit}
+                disabled={loadingSave}
+              >
+                Cancelar <FiX />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className={styles.headerButtons}>
-        {!isEditing ? (
-          <div className={styles.buttonRow}>
-            <button
-              className={`${styles.btn} ${styles.btnBlue}`}
-              onClick={handleEditar}
-              disabled={loadingDelete}
-            >
-              Editar <FiEdit2 />
-            </button>
-            <button
-              className={`${styles.btn} ${styles.btnRed}`}
-              onClick={handleExcluir}
-              disabled={loadingDelete}
-            >
-              {loadingDelete ? "Excluindo..." : "Excluir"} <FiTrash2 />
-            </button>
-          </div>
-        ) : (
-          <div className={styles.buttonRow}>
-            <button
-              className={`${styles.btn} ${styles.btnGreen}`}
-              onClick={handleSalvarEdicao}
-              disabled={loadingSave}
-            >
-              Salvar <FiCheck />
-            </button>
-            <button
-              className={`${styles.btn} ${styles.btnRed}`}
-              onClick={handleCancelarEdicao}
-              disabled={loadingSave}
-            >
-              Cancelar <FiX />
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderUserData = () => (
-    <>
+      {/* DADOS CADASTRO */}
       <div className={styles.sectionTitle}>Dados de Cadastro</div>
       <div className={styles.formGroup}>
         <div className={styles.inputRow}>
@@ -348,29 +451,25 @@ export default function UserDetailsPage() {
               className={`${styles.btn} ${styles.btnBlue}`}
               style={{ height: "38px" }}
               disabled={isEditing || loadingReset}
-              onClick={handleResetarSenha}
+              onClick={handleResetPassword}
             >
               Resetar Senha <FiRefreshCw />
             </button>
-
             <button
               className={`${styles.btn} ${
-                usuario?.ativo ? styles.btnRed : styles.btnGreen
+                usuario.ativo ? styles.btnRed : styles.btnGreen
               }`}
               style={{ height: "38px" }}
               disabled={isEditing || loadingSave}
               onClick={handleToggleAtivo}
             >
-              {usuario?.ativo ? "Desativar" : "Ativar"} <FiAlertCircle />
+              {usuario.ativo ? "Desativar" : "Ativar"} <FiAlertCircle />
             </button>
           </div>
         </div>
       </div>
-    </>
-  );
 
-  const renderRoles = () => (
-    <>
+      {/* CARGOS */}
       <div className={styles.sectionTitle}>Cargos</div>
       <button
         className={styles.primaryButton}
@@ -386,145 +485,101 @@ export default function UserDetailsPage() {
         <div className={styles.rolesGrid}>
           <div className={styles.roleColumn}>
             <div className={styles.roleHeader}>Movix</div>
-            {renderCargoList(cargosMovix)}
+            {renderCargoColumn(cargosMovix)}
           </div>
-
           <div className={styles.roleColumn}>
             <div className={styles.roleHeader}>Força de Vendas</div>
-            {renderCargoList(cargosFdv)}
+            {renderCargoColumn(cargosFdv)}
           </div>
-
           <div className={styles.roleColumn}>
             <div className={styles.roleHeader}>Outros</div>
-            {renderCargoList(cargosOutros)}
+            {renderCargoColumn(cargosOutros)}
           </div>
         </div>
       )}
-    </>
-  );
 
-  const renderCompanies = () => (
-    <div className={styles.companiesSection}>
-      <div className={styles.sectionTitle}>Empresas Vinculadas</div>
-      <button
-        className={styles.primaryButton}
-        onClick={() => setIsCompanyModalOpen(true)}
-        disabled={isEditing}
-      >
-        Vincular Empresa <FiPlus size={16} />
-      </button>
-
-      <div className={styles.innerTableContainer}>
-        <div style={{ overflowX: "auto", width: "100%" }}>
-          <table className={tableStyles.table}>
-            <thead>
-              <tr>
-                <th>Razão Social</th>
-                <th>CNPJ</th>
-                <th>Cidade</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {empresasPaginadas.map((emp) => (
-                <tr key={emp.codEmpresa}>
-                  <td>{emp.razaoSocial}</td>
-                  <td>{emp.cnpj}</td>
-                  <td>
-                    {emp.municipio?.nome} - {emp.municipio?.uf}
-                  </td>
-                  <td>
-                    <span
-                      className={`${tableStyles.statusBadge} ${
-                        emp.ativo
-                          ? tableStyles.statusCompleted
-                          : tableStyles.statusNotStarted
-                      }`}
-                    >
-                      {emp.ativo ? "ATIVO" : "INATIVO"}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      className={`${styles.btnTableAction} ${styles.btnFuncionario}`}
-                      onClick={() => handleOpenFuncionarioModal(emp.codEmpresa)}
-                      disabled={isEditing}
-                    >
-                      Cadastro de Funcionário
-                    </button>
-
-                    <button
-                      className={`${styles.btnTableAction} ${styles.btnRemover}`}
-                      onClick={() => alert("Implementar desvínculo")}
-                      disabled={isEditing}
-                    >
-                      Remover
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {empresasPaginadas.length === 0 && (
+      {/* EMPRESAS */}
+      <div className={styles.companiesSection}>
+        <div className={styles.sectionTitle}>Empresas Vinculadas</div>
+        <button
+          className={styles.primaryButton}
+          onClick={() => setIsCompanyModalOpen(true)}
+          disabled={isEditing || loadingVincular}
+        >
+          Vincular Empresa <FiPlus size={16} />
+        </button>
+        <div className={styles.innerTableContainer}>
+          <div style={{ overflowX: "auto", width: "100%" }}>
+            <table className={tableStyles.table}>
+              <thead>
                 <tr>
-                  <td colSpan={5} style={{ textAlign: "center" }}>
-                    Nenhuma empresa vinculada.
-                  </td>
+                  <th>Razão Social</th>
+                  <th>CNPJ</th>
+                  <th>Cidade</th>
+                  <th>Status</th>
+                  <th>Ações</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {empresasPaginadas.map((emp) => (
+                  <tr key={emp.codEmpresa}>
+                    <td>{emp.razaoSocial}</td>
+                    <td>{emp.cnpj}</td>
+                    <td>
+                      {emp.municipio?.nome} - {emp.municipio?.uf}
+                    </td>
+                    <td>
+                      <span
+                        className={`${tableStyles.statusBadge} ${
+                          emp.ativo
+                            ? tableStyles.statusCompleted
+                            : tableStyles.statusNotStarted
+                        }`}
+                      >
+                        {emp.ativo ? "ATIVO" : "INATIVO"}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        className={`${styles.btnTableAction} ${styles.btnFuncionario}`}
+                        onClick={() => {
+                          setSelectedCompanyId(emp.codEmpresa);
+                          handleSelectCompany(emp);
+                        }}
+                        disabled={isEditing}
+                      >
+                        Cadastro de Funcionário
+                      </button>
+                      <button
+                        className={`${styles.btnTableAction} ${styles.btnRemover}`}
+                        onClick={() => handleUnlinkCompany(emp.codEmpresa)}
+                        disabled={isEditing || loadingDesvincular}
+                      >
+                        Remover
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {empresasPaginadas.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: "center" }}>
+                      Nenhuma empresa vinculada.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <PaginationControls
+            paginaAtual={paginaAtual}
+            totalPaginas={Math.ceil(totalEmpresas / porPagina) || 1}
+            totalElementos={totalEmpresas}
+            porPagina={porPagina}
+            onPageChange={setPaginaAtual}
+            onItemsPerPageChange={setPorPagina}
+          />
         </div>
-
-        <PaginationControls
-          paginaAtual={paginaAtual}
-          totalPaginas={Math.ceil(totalEmpresas / porPagina) || 1}
-          totalElementos={totalEmpresas}
-          porPagina={porPagina}
-          onPageChange={setPaginaAtual}
-          onItemsPerPageChange={setPorPagina}
-        />
       </div>
-    </div>
-  );
-
-  //Return
-  if (loading)
-    return (
-      <div className={styles.container}>
-        <p>Carregando dados...</p>
-      </div>
-    );
-
-  if (error || !usuario)
-    return (
-      <div className={styles.container}>
-        <p>Erro ao carregar usuário.</p>
-      </div>
-    );
-
-  return (
-    <div className={styles.container}>
-      <ModalNovoCargo
-        isOpen={isRoleModalOpen}
-        onClose={() => setIsRoleModalOpen(false)}
-        onSuccess={handleCargoCreated}
-      />
-      <ModalVincularEmpresa
-        isOpen={isCompanyModalOpen}
-        onClose={() => setIsCompanyModalOpen(false)}
-        onVincular={handleVincularEmpresa}
-      />
-      <ModalNovoFuncionario
-        isOpen={isFuncionarioModalOpen}
-        onClose={() => setIsFuncionarioModalOpen(false)}
-        onSave={handleSaveFuncionario}
-        empresaId={selectedCompanyId}
-      />
-
-      {renderHeader()}
-      {renderUserData()}
-      {renderRoles()}
-      {renderCompanies()}
     </div>
   );
 }

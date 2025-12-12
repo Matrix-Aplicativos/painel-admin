@@ -1,6 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
+import { Municipio } from "./useGetUsuario";
 import axiosInstance from "../axiosInstance";
-import { Municipio } from "./useGetUsuario"; // Reaproveitando ou redefinindo se preferir
+
+// Interfaces de Permissão e Cargo
+export interface Permissao {
+  codPermissao: number;
+  nome: string;
+  descricao: string;
+}
+
+export interface CargoUsuario {
+  codCargo: number;
+  nome: string;
+  permissoes: Permissao[];
+}
 
 // Interface da Empresa dentro do detalhe do usuário
 export interface EmpresaUsuarioDetalhe {
@@ -20,6 +33,8 @@ export interface EmpresaUsuarioDetalhe {
   maxDispositivosFdv: number;
   maxDispositivosMultiFdv: number;
   validadeLicencaFdv: string;
+  diaVencimentoBoletoColeta: number;
+  diaVencimentoBoletoFdv: number;
   ativo: boolean;
 }
 
@@ -31,6 +46,7 @@ export interface UsuarioDetalhe {
   login: string;
   ativo: boolean;
   primeiroAcesso: boolean;
+  cargos: CargoUsuario[]; // Nova lista de cargos
   empresas: EmpresaUsuarioDetalhe[];
 }
 
@@ -49,7 +65,6 @@ const useGetUsuarioById = (
   const [error, setError] = useState<string | null>(null);
 
   const fetchUsuario = useCallback(async () => {
-    // Se não tiver ID válido, não busca e limpa o estado
     if (!codUsuario || codUsuario <= 0) {
       setUsuario(null);
       return;

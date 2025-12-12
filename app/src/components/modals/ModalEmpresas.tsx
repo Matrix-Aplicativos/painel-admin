@@ -19,25 +19,32 @@ export default function ModalVincularEmpresa({
   onClose,
   onVincular,
 }: ModalVincularEmpresaProps) {
-  //Declaração de todos os useStates
+  // --- Estados dos Inputs (O que o usuário digita) ---
   const [buscaRazao, setBuscaRazao] = useState("");
   const [buscaCnpj, setBuscaCnpj] = useState("");
+
+  // --- Estados dos Filtros (O que vai para o Hook) ---
+  const [filtroRazao, setFiltroRazao] = useState("");
+  const [filtroCnpj, setFiltroCnpj] = useState("");
+
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
 
-  //Declaração de Funções e Lógica
   const { empresas, pagination, loading, refetch } = useGetEmpresa({
     pagina: paginaAtual,
     porPagina: porPagina,
-    razaoSocial: buscaRazao,
-    cnpj: buscaCnpj,
+    razaoSocial: filtroRazao, 
+    cnpj: filtroCnpj, 
     orderBy: "razaoSocial",
     direction: "asc",
   });
 
+  // Função disparada pelo botão Buscar ou Enter
   const handleBuscar = () => {
     setPaginaAtual(1);
-    refetch();
+    setFiltroRazao(buscaRazao);
+    setFiltroCnpj(buscaCnpj);
+    setTimeout(() => refetch(), 0);
   };
 
   const handleSelecionar = (item: EmpresaItem) => {

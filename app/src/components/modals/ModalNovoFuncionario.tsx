@@ -17,6 +17,7 @@ interface ModalNovoFuncionarioProps {
   onClose: () => void;
   onSave: (data: FuncionarioData) => void;
   empresaId?: number | string;
+  initialData?: any;
 }
 
 export default function ModalNovoFuncionario({
@@ -24,8 +25,8 @@ export default function ModalNovoFuncionario({
   onClose,
   onSave,
   empresaId,
+  initialData,
 }: ModalNovoFuncionarioProps) {
-  //Declaração de todos os useStates
   const [formData, setFormData] = useState<FuncionarioData>({
     nome: "",
     cpf: "",
@@ -34,20 +35,29 @@ export default function ModalNovoFuncionario({
     codEmpresa: "",
   });
 
-  //Declaração de Funções e Lógica
   useEffect(() => {
-    if (isOpen && empresaId) {
-      setFormData((prev) => ({ ...prev, codEmpresa: empresaId }));
-    } else if (isOpen) {
-      setFormData({
-        nome: "",
-        cpf: "",
-        email: "",
-        codErp: "",
-        codEmpresa: "",
-      });
+    if (isOpen) {
+      if (initialData) {
+        // Carrega dados existentes para edição
+        setFormData({
+          nome: initialData.nome || "",
+          cpf: initialData.cpf || "",
+          email: initialData.email || "",
+          codErp: initialData.codFuncionarioErp || "",
+          codEmpresa: initialData.codEmpresa || empresaId || "",
+        });
+      } else {
+        // Limpa para novo cadastro
+        setFormData({
+          nome: "",
+          cpf: "",
+          email: "",
+          codErp: "",
+          codEmpresa: empresaId || "",
+        });
+      }
     }
-  }, [isOpen, empresaId]);
+  }, [isOpen, empresaId, initialData]);
 
   const maskCPF = (value: string) => {
     return value
@@ -70,96 +80,93 @@ export default function ModalNovoFuncionario({
     onSave(formData);
   };
 
-  //Declaração de Funções de renderização
-  const renderHeader = () => (
-    <div className={styles.header}>
-      <h2 className={styles.title}>NOVO FUNCIONÁRIO</h2>
-      <button className={styles.closeButton} onClick={onClose}>
-        <FiX />
-      </button>
-    </div>
-  );
-
-  const renderForm = () => (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <div className={styles.inputGroup}>
-        <label>Nome Completo</label>
-        <input
-          name="nome"
-          type="text"
-          placeholder="Nome do Funcionário"
-          value={formData.nome}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div className={styles.formRow}>
-        <div className={styles.inputGroup}>
-          <label>CPF</label>
-          <input
-            name="cpf"
-            type="text"
-            placeholder="000.000.000-00"
-            value={formData.cpf}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className={styles.inputGroup}>
-          <label>E-mail</label>
-          <input
-            name="email"
-            type="email"
-            placeholder="email@empresa.com"
-            value={formData.email}
-            onChange={handleChange}
-          />
-        </div>
-      </div>
-
-      <div className={styles.formRow}>
-        <div className={styles.inputGroup}>
-          <label>Cód. ERP</label>
-          <input
-            name="codErp"
-            type="text"
-            placeholder="Código Interno"
-            value={formData.codErp}
-            onChange={handleChange}
-          />
-        </div>
-        <div className={styles.inputGroup}>
-          <label>Cód. Empresa</label>
-          <input
-            name="codEmpresa"
-            type="text"
-            value={formData.codEmpresa}
-            onChange={handleChange}
-            readOnly
-          />
-        </div>
-      </div>
-
-      <div className={styles.footer}>
-        <button type="button" className={styles.btnCancel} onClick={onClose}>
-          Cancelar
-        </button>
-        <button type="submit" className={styles.btnSave}>
-          Salvar <FiCheck />
-        </button>
-      </div>
-    </form>
-  );
-
-  //Return
   if (!isOpen) return null;
 
   return (
     <div className={styles.overlay}>
       <div className={styles.container}>
-        {renderHeader()}
-        {renderForm()}
+        <div className={styles.header}>
+          <h2 className={styles.title}>
+            {initialData ? "EDITAR/VINCULAR FUNCIONÁRIO" : "NOVO FUNCIONÁRIO"}
+          </h2>
+          <button className={styles.closeButton} onClick={onClose}>
+            <FiX />
+          </button>
+        </div>
+
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <div className={styles.inputGroup}>
+            <label>Nome Completo</label>
+            <input
+              name="nome"
+              type="text"
+              placeholder="Nome do Funcionário"
+              value={formData.nome}
+              onChange={handleChange}
+              required
+              // Habilitado para edição
+            />
+          </div>
+
+          <div className={styles.formRow}>
+            <div className={styles.inputGroup}>
+              <label>CPF</label>
+              <input
+                name="cpf"
+                type="text"
+                placeholder="000.000.000-00"
+                value={formData.cpf}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className={styles.inputGroup}>
+              <label>E-mail</label>
+              <input
+                name="email"
+                type="email"
+                placeholder="email@empresa.com"
+                value={formData.email}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className={styles.formRow}>
+            <div className={styles.inputGroup}>
+              <label>Cód. ERP</label>
+              <input
+                name="codErp"
+                type="text"
+                placeholder="Código Interno"
+                value={formData.codErp}
+                onChange={handleChange}
+              />
+            </div>
+            <div className={styles.inputGroup}>
+              <label>Cód. Empresa (Vínculo)</label>
+              <input
+                name="codEmpresa"
+                type="text"
+                value={formData.codEmpresa}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className={styles.footer}>
+            <button
+              type="button"
+              className={styles.btnCancel}
+              onClick={onClose}
+            >
+              Cancelar
+            </button>
+            <button type="submit" className={styles.btnSave}>
+              {initialData ? "Salvar Alterações" : "Salvar"} <FiCheck />
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
