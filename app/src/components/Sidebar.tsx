@@ -11,7 +11,8 @@ import {
   FiCalendar,
   FiMenu,
   FiLogOut,
-  FiSmartphone, // Importei o ícone novo
+  FiSmartphone,
+  FiFileText, 
 } from "react-icons/fi";
 
 interface SidebarProps {
@@ -80,11 +81,17 @@ export default function Sidebar({
           </Link>
         </li>
 
-        {/* NOVO ITEM ADICIONADO AQUI */}
         <li>
           <Link href="/painel/VersaoMovix" className="menu-item">
             <FiSmartphone size={24} />
             {isOpen && <span className="menu-text">Versões MOVIX</span>}
+          </Link>
+        </li>
+
+        <li>
+          <Link href="/painel/Documentos" className="menu-item">
+            <FiFileText size={24} />
+            {isOpen && <span className="menu-text">Documentos</span>}
           </Link>
         </li>
       </ul>
