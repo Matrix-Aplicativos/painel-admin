@@ -18,6 +18,14 @@ import usePostParcela, {
 } from "@/app/src/hooks/Financeiro/usePostParcelas";
 import useDeleteParcela from "@/app/src/hooks/Financeiro/useDeleteParcelas";
 
+// Mapeamento dos tipos
+const TIPOS_MAP: Record<string, string> = {
+  A: "Ativação",
+  M: "Manutenção",
+  S: "Serviço",
+  O: "Outros",
+};
+
 export default function ParcelasPage() {
   const params = useParams();
   const idCliente = Number(params.id);
@@ -34,7 +42,7 @@ export default function ParcelasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [parcelaSelecionada, setParcelaSelecionada] = useState<any>(null);
 
-  // Paginação (No front por enquanto)
+  // Paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
   const porPagina = 20;
   const parcelasPaginadas = parcelas.slice(
@@ -94,7 +102,7 @@ export default function ParcelasPage() {
       datavencimento: dataVencimentoISO,
       tipo: dadosForm.tipo,
       datapagamento: dataPagamentoISO,
-      pago: !!dataPagamentoISO, // Se tem data de pagamento, considera pago
+      pago: !!dataPagamentoISO,
     };
 
     if (await saveParcela(payload)) {
@@ -173,7 +181,10 @@ export default function ParcelasPage() {
                     <td>
                       {new Date(item.datavencimento).toLocaleDateString()}
                     </td>
-                    <td>{item.tipo}</td>
+
+                    {/* --- AQUI ESTÁ A MUDANÇA --- */}
+                    <td>{TIPOS_MAP[item.tipo] || item.tipo}</td>
+
                     <td>
                       <span
                         style={{

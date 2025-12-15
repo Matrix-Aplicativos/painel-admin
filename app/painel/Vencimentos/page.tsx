@@ -5,14 +5,19 @@ import styles from "./Calendar.module.css";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import useGetVencimentos from "@/app/src/hooks/Financeiro/useGetVencimentos";
 
+const TIPOS_MAP: Record<string, string> = {
+  A: "Ativação",
+  M: "Manutenção",
+  S: "Serviço",
+  O: "Outros",
+};
+
 export default function VencimentosPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  // Extrai mês e ano para passar para o hook
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  // Hook busca dados reais baseados no mês atual
   const { vencimentos, loading } = useGetVencimentos(month, year);
 
   const changeMonth = (offset: number) => {
@@ -43,7 +48,6 @@ export default function VencimentosPage() {
     const totalCells = 42;
     const days = [];
 
-    // Dias do mês anterior (Cinza)
     for (let i = firstDayIndex; i > 0; i--) {
       days.push(
         <div
@@ -55,7 +59,6 @@ export default function VencimentosPage() {
       );
     }
 
-    // Dias do mês atual
     const today = new Date();
     for (let i = 1; i <= daysInMonth; i++) {
       const isToday =
@@ -63,13 +66,11 @@ export default function VencimentosPage() {
         month === today.getMonth() &&
         year === today.getFullYear();
 
-      // Formata data para comparar com o banco (YYYY-MM-DD)
       const dateString = `${year}-${String(month + 1).padStart(
         2,
         "0"
       )}-${String(i).padStart(2, "0")}`;
 
-      // Filtra os eventos deste dia específico
       const dayEvents = vencimentos.filter((v) => v.data === dateString);
 
       days.push(
@@ -90,10 +91,16 @@ export default function VencimentosPage() {
                 className={`${styles.eventCard} ${getStatusClass(
                   event.status
                 )}`}
-                title={`${event.cliente} - ${event.categoria} - R$ ${event.valor}`}
+                title={`${event.cliente} - ${
+                  TIPOS_MAP[event.categoria] || event.categoria
+                } - R$ ${event.valor}`}
               >
                 <span className={styles.clientName}>{event.cliente}</span>
-                <span className={styles.categoryTag}>{event.categoria}</span>
+
+                <span className={styles.categoryTag}>
+                  {TIPOS_MAP[event.categoria] || event.categoria}
+                </span>
+
                 <span className={styles.cardValue}>
                   {event.valor.toLocaleString("pt-BR", {
                     style: "currency",
@@ -107,7 +114,6 @@ export default function VencimentosPage() {
       );
     }
 
-    // Dias do próximo mês (Cinza)
     const filledCells = days.length;
     const remainingCells = totalCells - filledCells;
 

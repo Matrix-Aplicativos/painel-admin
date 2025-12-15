@@ -216,15 +216,19 @@
 }
 .paymentRow {
   display: grid;
-  grid-template-columns: 0.5fr 1fr 1fr 1fr;
-  padding: 5px 0;
+  /* Alterado para 3 colunas para alinhar: Vencimento | Valor | Tipo */
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 8px 0;
   border-bottom: 1px solid #eee;
+  gap: 10px;
+  align-items: center;
 }
+
 .paymentHeader {
   font-weight: bold;
   color: #888;
   margin-bottom: 5px;
-  gap: 15px;
+  
 }
 
 .btnViewParcels {

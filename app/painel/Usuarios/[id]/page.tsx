@@ -10,6 +10,7 @@ import {
   FiRefreshCw,
   FiPlus,
   FiX,
+  FiUserCheck, // Ícone para "Cadastro Encontrado"
 } from "react-icons/fi";
 import styles from "../DetalhesUsuario.module.css";
 import tableStyles from "@/app/src/components/Tabelas.module.css";
@@ -18,9 +19,9 @@ import PaginationControls from "@/app/src/components/PaginationControls";
 // --- MODAIS ---
 import ModalNovoCargo from "@/app/src/components/modals/ModalNovoCargo";
 import ModalNovoFuncionario from "@/app/src/components/modals/ModalNovoFuncionario";
+import ModalVincularEmpresa from "@/app/src/components/modals/ModalEmpresas";
 
 // --- HOOKS E AXIOS ---
-
 import useGetUsuarioById, {
   UsuarioDetalhe,
 } from "@/app/src/hooks/Usuario/useGetUsuarioById";
@@ -31,14 +32,12 @@ import usePostUsuarioEmpresa from "@/app/src/hooks/Usuario/usePostUsuarioEmpresa
 import useDeleteUsuarioEmpresa from "@/app/src/hooks/Usuario/useDeleteUsuarioEmpresa";
 import useGetCargo, { CargoItem } from "@/app/src/hooks/Cargo/useGetCargo";
 import axiosInstance from "@/app/src/hooks/axiosInstance";
-import ModalVincularEmpresa from "@/app/src/components/modals/ModalEmpresas";
 
 export default function UserDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const id = Number(params.id);
 
-  // 1. HOOKS DE DADOS (Executados primeiro para ter os dados disponíveis)
   const { usuario, loading, error, refetch } = useGetUsuarioById(id);
 
   const {
@@ -52,13 +51,10 @@ export default function UserDetailsPage() {
     orderBy: "nome",
   });
 
-  // 2. USE MEMO (Definido LOGO APÓS receber 'cargos' para evitar erro de inicialização)
   const { cargosMovix, cargosFdv, cargosOutros } = useMemo(() => {
     const movix: CargoItem[] = [];
     const fdv: CargoItem[] = [];
     const outros: CargoItem[] = [];
-
-    // Proteção contra undefined (caso a API ainda não tenha respondido)
     const listaCargos = cargos || [];
 
     listaCargos.forEach((cargo) => {
@@ -75,7 +71,6 @@ export default function UserDetailsPage() {
     return { cargosMovix: movix, cargosFdv: fdv, cargosOutros: outros };
   }, [cargos]);
 
-  // 3. HOOKS DE AÇÃO
   const { deleteUsuario, loading: loadingDelete } = useDeleteUsuario();
   const { createUsuario, loading: loadingSave } = usePostUsuario();
   const { resetarSenha, loading: loadingReset } = usePostResetarSenha();
@@ -84,7 +79,6 @@ export default function UserDetailsPage() {
   const { desvincularUsuarioEmpresa, loading: loadingDesvincular } =
     useDeleteUsuarioEmpresa();
 
-  // 4. ESTADOS (States)
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<UsuarioDetalhe>>({});
   const [selectedCargos, setSelectedCargos] = useState<number[]>([]);
@@ -92,18 +86,18 @@ export default function UserDetailsPage() {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
 
-  // Estados dos Modais
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
   const [isFuncionarioModalOpen, setIsFuncionarioModalOpen] = useState(false);
 
-  // Controle de Vínculo de Empresa
+  const [showDecisionModal, setShowDecisionModal] = useState(false); 
+  const [tempFuncionario, setTempFuncionario] = useState<any>(null); 
+
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | string>(
     ""
   );
   const [existingFuncionario, setExistingFuncionario] = useState<any>(null);
 
-  // 5. EFEITOS (UseEffect)
   useEffect(() => {
     if (usuario) {
       setFormData({
@@ -114,15 +108,12 @@ export default function UserDetailsPage() {
         ativo: usuario.ativo,
       });
 
-      // Popula os cargos do usuário quando os dados chegam
       if (usuario.cargos && Array.isArray(usuario.cargos)) {
         const cargosIds = usuario.cargos.map((c) => c.codCargo);
         setSelectedCargos(cargosIds);
       }
     }
   }, [usuario]);
-
-  // --- HANDLERS: EDIÇÃO DO USUÁRIO ---
 
   const handleInputChange = (field: keyof UsuarioDetalhe, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -133,9 +124,9 @@ export default function UserDetailsPage() {
   const handleCancelEdit = () => {
     setIsEditing(false);
     if (usuario) {
-      setFormData(usuario); // Reseta formulário
+      setFormData(usuario);
       if (usuario.cargos) {
-        setSelectedCargos(usuario.cargos.map((c) => c.codCargo)); // Reseta cargos
+        setSelectedCargos(usuario.cargos.map((c) => c.codCargo));
       }
     }
   };
@@ -148,11 +139,10 @@ export default function UserDetailsPage() {
       login: formData.login || "",
       primeiroAcesso: usuario?.primeiroAcesso || false,
       ativo: formData.ativo !== undefined ? formData.ativo : true,
-      cargos: selectedCargos, // Manda lista de cargos atualizada
+      cargos: selectedCargos,
     };
 
     const sucesso = await createUsuario(payload);
-
     if (sucesso) {
       alert("Usuário atualizado com sucesso!");
       setIsEditing(false);
@@ -198,8 +188,6 @@ export default function UserDetailsPage() {
     }
   };
 
-  // --- HANDLERS: CARGOS ---
-
   const handleToggleCargo = (codCargo: number) => {
     if (!isEditing) return;
     setSelectedCargos((prev) => {
@@ -213,29 +201,58 @@ export default function UserDetailsPage() {
     refetchCargos();
   };
 
-  // --- HANDLERS: EMPRESA E FUNCIONÁRIO ---
-
   const handleSelectCompany = async (empresa: any) => {
     setIsCompanyModalOpen(false);
     setSelectedCompanyId(empresa.codEmpresa);
 
     try {
-      // Verifica se já existe funcionário vinculado
       const response = await axiosInstance.get(
         `/usuario/funcionario/${id}/${empresa.codEmpresa}`
       );
       const funcionariosEncontrados = response.data;
 
       if (funcionariosEncontrados && funcionariosEncontrados.length > 0) {
-        setExistingFuncionario(funcionariosEncontrados[0]);
+        setTempFuncionario(funcionariosEncontrados[0]);
+        setShowDecisionModal(true); 
       } else {
         setExistingFuncionario(null);
+        setIsFuncionarioModalOpen(true);
       }
-      setIsFuncionarioModalOpen(true);
     } catch (err) {
       console.error("Erro ao verificar funcionário:", err);
       setExistingFuncionario(null);
       setIsFuncionarioModalOpen(true);
+    }
+  };
+
+  const handleProceedEdit = () => {
+    setShowDecisionModal(false);
+    setExistingFuncionario(tempFuncionario); 
+    setIsFuncionarioModalOpen(true); 
+  };
+  const handleProceedKeep = async () => {
+    setShowDecisionModal(false);
+
+    const payload = {
+      codUsuario: usuario?.codUsuario,
+      codEmpresa: Number(selectedCompanyId),
+      ativo: true,
+      cadastroFuncionario: {
+        codFuncionario: tempFuncionario.codFuncionario,
+        codEmpresa: tempFuncionario.codEmpresa,
+        codFuncionarioErp: tempFuncionario.codFuncionarioErp,
+        nome: tempFuncionario.nome,
+        cpf: tempFuncionario.cpf,
+        email: tempFuncionario.email,
+        ativo: true,
+      },
+    };
+
+    const sucesso = await vincularUsuarioEmpresa(payload);
+
+    if (sucesso) {
+      alert("Vínculo realizado com sucesso!");
+      refetch();
     }
   };
 
@@ -245,7 +262,6 @@ export default function UserDetailsPage() {
     let cadastroPayload;
 
     if (existingFuncionario) {
-      // Edita Existente
       cadastroPayload = {
         codFuncionario: existingFuncionario.codFuncionario,
         codEmpresa: existingFuncionario.codEmpresa,
@@ -256,9 +272,8 @@ export default function UserDetailsPage() {
         ativo: true,
       };
     } else {
-      // Cria Novo
       cadastroPayload = {
-        codFuncionario: null, // NULL indica novo
+        codFuncionario: null, 
         codEmpresa: Number(selectedCompanyId),
         codFuncionarioErp: dadosModal.codErp,
         nome: dadosModal.nome,
@@ -290,8 +305,6 @@ export default function UserDetailsPage() {
       if (await desvincularUsuarioEmpresa(id, codEmpresa)) refetch();
     }
   };
-
-  // --- RENDERIZAÇÃO ---
 
   if (loading)
     return (
@@ -356,6 +369,101 @@ export default function UserDetailsPage() {
         empresaId={selectedCompanyId}
         initialData={existingFuncionario}
       />
+
+      {showDecisionModal && tempFuncionario && (
+        <div
+          className={styles.overlay}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            className={styles.modalContent}
+            style={{
+              backgroundColor: "white",
+              padding: "25px",
+              borderRadius: "8px",
+              width: "400px",
+              maxWidth: "90%",
+              boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+            }}
+          >
+            <div style={{ textAlign: "center", marginBottom: "20px" }}>
+              <FiUserCheck
+                size={48}
+                color="#007bff"
+                style={{ marginBottom: "10px" }}
+              />
+              <h3
+                style={{ fontSize: "18px", fontWeight: "bold", color: "#333" }}
+              >
+                Mensagem de Cadastro Encontrado
+              </h3>
+              <p style={{ color: "#666", marginTop: "10px" }}>
+                Encontramos o funcionário{" "}
+                <strong>{tempFuncionario.nome}</strong> vinculado a esta
+                empresa. Deseja editar os dados ou usar o cadastro existente?
+              </p>
+            </div>
+
+            <div
+              style={{ display: "flex", gap: "10px", justifyContent: "center" }}
+            >
+              <button
+                className={styles.btn}
+                style={{
+                  backgroundColor: "#17e381",
+                  color: "white",
+                  border: "none",
+                  padding: "10px 20px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+                onClick={handleProceedKeep} 
+              >
+                Vincular Atual
+              </button>
+              <button
+                className={styles.btn}
+                style={{
+                  backgroundColor: "#007bff",
+                  color: "white",
+                  border: "none",
+                  padding: "10px 20px",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+                onClick={handleProceedEdit} 
+              >
+                Editar Cadastro
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowDecisionModal(false)}
+              style={{
+                marginTop: "15px",
+                background: "none",
+                border: "none",
+                color: "#999",
+                cursor: "pointer",
+                width: "100%",
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* HEADER */}
       <div className={styles.header}>

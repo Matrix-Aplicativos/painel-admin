@@ -5,28 +5,31 @@ import { FiEdit2, FiTrash2, FiCheck, FiPlus, FiX } from "react-icons/fi";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
-// --- HOOKS DO CLIENTE ---
+// --- HOOKS ---
 import useGetClienteById from "@/app/src/hooks/Cliente/useGetClienteById";
 import usePostCliente, {
   ClientePayload,
 } from "@/app/src/hooks/Cliente/usePostCliente";
 import useDeleteCliente from "@/app/src/hooks/Cliente/useDeleteCliente";
-
-// --- HOOKS DE CONTATO ---
-
 import usePostContato, {
   ContatoPayload,
 } from "@/app/src/hooks/Contato/usePostContato";
 import useDeleteContato from "@/app/src/hooks/Contato/useDeleteContato";
-
-// --- HOOK DE PARCELA ---
 import useGetParcelas from "@/app/src/hooks/Financeiro/useGetParcelas";
-
-// --- MODAL ---
-import ModalContato from "@/app/src/components/modals/ModalContato";
 import useGetContatos, {
   ContatoItem,
 } from "@/app/src/hooks/Contato/useGetContato";
+
+// --- MODAL ---
+import ModalContato from "@/app/src/components/modals/ModalContato";
+
+// 1. Mapeamento de Tipos
+const TIPOS_MAP: Record<string, string> = {
+  A: "Ativação",
+  M: "Manutenção",
+  S: "Serviço",
+  O: "Outros",
+};
 
 export default function ClientDetailsPage() {
   const router = useRouter();
@@ -77,7 +80,6 @@ export default function ClientDetailsPage() {
   }, [cliente]);
 
   // --- HANDLERS CLIENTE ---
-
   const handleInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -87,15 +89,12 @@ export default function ClientDetailsPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Botão Editar
   const handleEditar = () => {
     setIsEditing(true);
   };
 
-  // Botão Cancelar (CORRIGIDO)
   const handleCancelar = () => {
     setIsEditing(false);
-    // Reseta os dados para o que veio do banco
     if (cliente) {
       setFormData({
         razaosocial: cliente.razaosocial || "",
@@ -136,9 +135,8 @@ export default function ClientDetailsPage() {
   };
 
   // --- HANDLERS CONTATO ---
-
   const handleOpenContactModal = (contato?: ContatoItem) => {
-    setSelectedContact(contato || null); // Se passar contato, é edição. Se não, novo.
+    setSelectedContact(contato || null);
     setIsContactModalOpen(true);
   };
 
@@ -186,8 +184,8 @@ export default function ClientDetailsPage() {
   };
 
   const getStatusClass = (status: string) => {
-    if (status === "1") return styles.statusBadge; // Verde (padrão)
-    return `${styles.statusBadge} ${styles.statusInactive}`; // Estilo diferente
+    if (status === "1") return styles.statusBadge;
+    return `${styles.statusBadge} ${styles.statusInactive}`;
   };
 
   if (loading) return <div className={styles.container}>Carregando...</div>;
@@ -298,7 +296,6 @@ export default function ClientDetailsPage() {
           >
             <span>Contatos</span>
 
-            {/* O Botão Novo Contato aparece APENAS SE estiver editando */}
             {isEditing && (
               <button
                 className={styles.primaryButton}
@@ -318,7 +315,7 @@ export default function ClientDetailsPage() {
             )}
           </div>
 
-          {/* CABEÇALHO DA TABELA */}
+          {/* CABEÇALHO DA TABELA CONTATOS */}
           <div
             className={styles.contactHeader}
             style={{
@@ -351,7 +348,7 @@ export default function ClientDetailsPage() {
             )}
           </div>
 
-          {/* LISTA DE ITENS */}
+          {/* LISTA DE CONTATOS */}
           <div className={styles.contactList}>
             {contatos.map((ct) => (
               <div
@@ -370,7 +367,11 @@ export default function ClientDetailsPage() {
                 <a
                   href={`mailto:${ct.email}`}
                   className={styles.contactLink}
-                  style={{ flex: 1, color: "#1769e3", textDecoration: "none" }}
+                  style={{
+                    flex: 1,
+                    color: "#1769e3",
+                    textDecoration: "none",
+                  }}
                 >
                   {ct.email}
                 </a>
@@ -424,7 +425,6 @@ export default function ClientDetailsPage() {
             )}
           </div>
 
-          {/* OBSERVAÇÕES */}
           <div className={styles.sectionTitle} style={{ marginTop: "30px" }}>
             Observações
           </div>
@@ -441,7 +441,6 @@ export default function ClientDetailsPage() {
 
         {/* DIREITA: ACTIONS & FINANCEIRO */}
         <div className={styles.sidebarSection}>
-          {/* Lógica de Botões: Toggle entre Editar/Excluir e Salvar/Cancelar */}
           <div className={styles.actionButtons}>
             {!isEditing ? (
               <div className={styles.buttonRow}>
@@ -471,7 +470,7 @@ export default function ClientDetailsPage() {
                 </button>
                 <button
                   className={`${styles.btnAction} ${styles.btnCancel}`}
-                  onClick={handleCancelar} // <--- Aqui chamamos a função corrigida
+                  onClick={handleCancelar}
                   disabled={loadingSave}
                 >
                   Cancelar <FiX />
@@ -483,6 +482,8 @@ export default function ClientDetailsPage() {
           {/* LISTA DE PARCELAS */}
           <div className={styles.paymentSection}>
             <h3>Pagamentos em Aberto</h3>
+
+            {/* 2. Cabeçalho com grid ajustado (via CSS styles.paymentRow) */}
             <div className={`${styles.paymentRow} ${styles.paymentHeader}`}>
               <span>Vencimento</span>
               <span>Valor</span>
@@ -499,11 +500,17 @@ export default function ClientDetailsPage() {
                 </p>
               )}
 
+              {/* 3. Renderização corrigida com Mapa e Alinhamento */}
               {parcelas.map((p) => (
                 <div key={p.codparcela} className={styles.paymentRow}>
                   <span>{new Date(p.datavencimento).toLocaleDateString()}</span>
-                  <span>R$ {Number(p.valor).toFixed(2)}</span>
-                  <span>{p.tipo}</span>
+                  <span>
+                    {Number(p.valor).toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
+                  </span>
+                  <span>{TIPOS_MAP[p.tipo] || p.tipo}</span>
                 </div>
               ))}
             </div>
