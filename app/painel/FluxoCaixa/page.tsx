@@ -1,27 +1,33 @@
 "use client";
 
-import { useState } from "react";
-import styles from "@/app/src/components/Tabelas.module.css";
+import { useState, useMemo } from "react";
+import styles from "@/app/src/components/Tabelas.module.css"; // Ajuste o caminho do CSS se necessário
 import { FiEdit, FiTrash2, FiPlus, FiSearch } from "react-icons/fi";
 import ModalMovimentacao from "@/app/src/components/modals/ModalMovimentacao";
 import PaginationControls from "@/app/src/components/PaginationControls";
 
-// HOOKS
-
+// --- HOOKS ---
 import usePostMovimentacao, {
   MovimentacaoPayload,
 } from "@/app/src/hooks/Financeiro/usePostMovimentacao";
 import useDeleteMovimentacao from "@/app/src/hooks/Financeiro/useDeleteMovimentacao";
 import useGetMovimentacoes from "@/app/src/hooks/Financeiro/useGetMovimentacao";
+import useGetParcelasPagas from "@/app/src/hooks/Financeiro/useGetParcelasPagas";
+
+const TIPOS_MAP: Record<string, string> = {
+  A: "Ativação",
+  M: "Manutenção",
+  S: "Serviço",
+  O: "Outros",
+};
 
 export default function FluxoCaixaPage() {
-  // --- ESTADOS DE FILTRO (Inputs) ---
   const [inputDescricao, setInputDescricao] = useState("");
   const [inputCategoria, setInputCategoria] = useState("");
   const [inputDataInicio, setInputDataInicio] = useState("");
   const [inputDataFim, setInputDataFim] = useState("");
 
-  // --- ESTADOS DE FILTRO (Efetivos p/ Hook) ---
+  // Estado que efetivamente dispara a busca nos Hooks
   const [filtros, setFiltros] = useState({
     descricao: "",
     categoria: "",
@@ -29,36 +35,110 @@ export default function FluxoCaixaPage() {
     dataFim: "",
   });
 
-  // --- HOOKS ---
-  // O hook recarrega sempre que 'filtros' muda
-  const { movimentacoes, loading, refetch } = useGetMovimentacoes(filtros);
+  const {
+    movimentacoes,
+    loading: loadingMov,
+    refetch: refetchMov,
+  } = useGetMovimentacoes(filtros);
+
+  const {
+    parcelas,
+    loading: loadingParc,
+    refetch: refetchParc,
+  } = useGetParcelasPagas({
+    dataInicio: filtros.dataInicio,
+    dataFim: filtros.dataFim,
+  });
+
   const { saveMovimentacao } = usePostMovimentacao();
   const { deleteMovimentacao } = useDeleteMovimentacao();
 
-  // Estados de Paginação e Modal
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [movimentacaoSelecionada, setMovimentacaoSelecionada] =
     useState<any>(null);
 
-  // Paginação no Front (Supabase retorna tudo filtrado, paginamos a view)
-  const dadosPaginados = movimentacoes.slice(
+  // Função para recarregar tudo após uma ação
+  const handleRefetchAll = () => {
+    refetchMov();
+    refetchParc();
+  };
+
+  const listaUnificada = useMemo(() => {
+    const listaManuais = (movimentacoes || []).map((m) => ({
+      ...m,
+      tipoOrigem: "MANUAL",
+      idUnico: `mov-${m.codmovimentacao}`,
+
+      valor: Number(m.valor),
+      datapagamento: m.datapagamento,
+    }));
+
+    const listaParcelas = (parcelas || []).map((p) => {
+      const nomeCliente =
+        p.tbcliente?.razaosocial || `Cliente #${p.codcliente}`;
+
+      const tipoTraduzido = TIPOS_MAP[p.tipo] || p.tipo || "Parcela";
+
+      return {
+        codmovimentacao: p.codparcela,
+
+        descricao: `${nomeCliente} - Parc. ${p.numparcela}`,
+
+        valor: Number(p.valor),
+
+        datapagamento: p.datapagamento || p.datavencimento,
+
+        categoria: "Receita de Vendas",
+        subcategoria: tipoTraduzido,
+
+        tipoOrigem: "PARCELA",
+        idUnico: `parc-${p.codparcela}`,
+      };
+    });
+
+    let tudo = [...listaManuais, ...listaParcelas];
+
+    if (filtros.descricao) {
+      const termo = filtros.descricao.toLowerCase();
+      tudo = tudo.filter((item) =>
+        (item.descricao || "").toLowerCase().includes(termo)
+      );
+    }
+    if (filtros.categoria) {
+      const termo = filtros.categoria.toLowerCase();
+      tudo = tudo.filter(
+        (item) =>
+          (item.categoria || "").toLowerCase().includes(termo) ||
+          (item.subcategoria || "").toLowerCase().includes(termo)
+      );
+    }
+
+    return tudo.sort((a, b) => {
+      const dateA = a.datapagamento ? new Date(a.datapagamento).getTime() : 0;
+      const dateB = b.datapagamento ? new Date(b.datapagamento).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [movimentacoes, parcelas, filtros.descricao, filtros.categoria]);
+
+  // Paginação dos dados unificados
+  const dadosPaginados = listaUnificada.slice(
     (paginaAtual - 1) * porPagina,
     paginaAtual * porPagina
   );
 
-  // --- HANDLERS ---
+  const loading = loadingMov || loadingParc;
 
   const handleBuscar = () => {
-    setPaginaAtual(1);
+    setPaginaAtual(1); // Volta para pagina 1 ao filtrar
     setFiltros({
       descricao: inputDescricao,
       categoria: inputCategoria,
       dataInicio: inputDataInicio,
       dataFim: inputDataFim,
     });
-    // O useEffect do hook vai disparar o fetch automaticamente ao mudar 'filtros'
   };
 
   const handleNovaMovimentacao = () => {
@@ -67,49 +147,64 @@ export default function FluxoCaixaPage() {
   };
 
   const handleEditarMovimentacao = (item: any) => {
-    // Ajuste aqui se seu Modal espera nomes de campos diferentes
+    // Bloqueia edição de parcela automática
+    if (item.tipoOrigem === "PARCELA") {
+      alert(
+        `O recebimento "${item.descricao}" é automático.\nPara alterar, vá até o cadastro do Cliente > Vendas.`
+      );
+      return;
+    }
     setMovimentacaoSelecionada(item);
     setIsModalOpen(true);
   };
 
-  const handleExcluir = async (id: number) => {
-    if (confirm("Tem certeza que deseja excluir esta movimentação?")) {
-      if (await deleteMovimentacao(id)) {
-        refetch();
+  const handleExcluir = async (item: any) => {
+    // Bloqueia exclusão de parcela automática
+    if (item.tipoOrigem === "PARCELA") {
+      alert(
+        "Não é possível excluir parcelas automáticas aqui.\nFaça o estorno na tela de Vendas do Cliente."
+      );
+      return;
+    }
+    if (confirm(`Tem certeza que deseja excluir: ${item.descricao}?`)) {
+      if (await deleteMovimentacao(item.codmovimentacao)) {
+        handleRefetchAll();
       }
     }
   };
 
   const handleSalvar = async (dadosModal: any) => {
-    // Mapeamento dos dados do Modal para o Payload do Supabase
-    // Certifique-se que o Modal devolve os dados corretos (ex: valor numérico, data ISO)
     const payload: MovimentacaoPayload = {
       codmovimentacao: movimentacaoSelecionada?.codmovimentacao || null,
       descricao: dadosModal.descricao,
       categoria: dadosModal.categoria,
       subcategoria: dadosModal.subcategoria,
       valor: Number(dadosModal.valor),
-      datapagamento: dadosModal.datapagamento, // YYYY-MM-DD
+      datapagamento: dadosModal.datapagamento,
     };
 
     if (await saveMovimentacao(payload)) {
       setIsModalOpen(false);
-      refetch();
+      handleRefetchAll();
     }
   };
 
+  // Funções Auxiliares de Formatação
   const formatMoney = (val: number) => {
+    if (isNaN(val)) return "R$ 0,00";
     return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
-    const [ano, mes, dia] = dateString.split("-");
+    const datePart = dateString.split("T")[0];
+    const [ano, mes, dia] = datePart.split("-");
     return `${dia}/${mes}/${ano}`;
   };
 
   return (
     <div className={styles.container}>
+      {/* Modal de Cadastro/Edição */}
       <ModalMovimentacao
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -119,24 +214,26 @@ export default function FluxoCaixaPage() {
 
       <h1 className={styles.title}>FLUXO DE CAIXA</h1>
 
+      {/* --- BARRA DE FILTROS --- */}
       <div
         className={styles.searchContainer}
         style={{ flexWrap: "wrap", gap: "15px", alignItems: "flex-end" }}
       >
-        {/* Input Descrição */}
+        {/* Filtro Descrição */}
         <div
           className={styles.inputWrapper}
           style={{ flex: 2, minWidth: "200px" }}
         >
           <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
-            Descrição
+            Descrição / Cliente
           </label>
           <input
             type="text"
-            placeholder="Buscar descrição"
+            placeholder="Buscar..."
             value={inputDescricao}
             onChange={(e) => setInputDescricao(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
+            className={styles.inputField}
             style={{
               padding: "8px",
               border: "1px solid #ccc",
@@ -147,7 +244,6 @@ export default function FluxoCaixaPage() {
           />
         </div>
 
-        {/* Input Categoria */}
         <div
           className={styles.inputWrapper}
           style={{ flex: 1, minWidth: "150px" }}
@@ -157,7 +253,7 @@ export default function FluxoCaixaPage() {
           </label>
           <input
             type="text"
-            placeholder="Ex: Receita"
+            placeholder="Ex: Receita, Vendas..."
             value={inputCategoria}
             onChange={(e) => setInputCategoria(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
@@ -171,7 +267,7 @@ export default function FluxoCaixaPage() {
           />
         </div>
 
-        {/* Data Inicio */}
+        {/* Filtro Data Início */}
         <div className={styles.inputWrapper} style={{ width: "140px" }}>
           <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
             Data Início
@@ -190,7 +286,7 @@ export default function FluxoCaixaPage() {
           />
         </div>
 
-        {/* Data Fim */}
+        {/* Filtro Data Fim */}
         <div className={styles.inputWrapper} style={{ width: "140px" }}>
           <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
             Data Fim
@@ -212,7 +308,6 @@ export default function FluxoCaixaPage() {
         {/* Botão Buscar */}
         <div style={{ display: "flex", alignItems: "flex-end" }}>
           <button
-            className={styles.primaryButton}
             onClick={handleBuscar}
             style={{
               backgroundColor: "#1769e3",
@@ -221,22 +316,31 @@ export default function FluxoCaixaPage() {
               alignItems: "center",
               gap: "5px",
               height: "35px",
+              padding: "0 15px",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
             }}
           >
-            Buscar <FiSearch color="#fff" />
+            Buscar <FiSearch />
           </button>
         </div>
 
-        {/* Botão Novo (Jogado pra direita) */}
+        {/* Botão Novo */}
         <div className={styles.searchActions} style={{ marginLeft: "auto" }}>
           <button
-            className={styles.primaryButton}
             onClick={handleNovaMovimentacao}
             style={{
               height: "35px",
               display: "flex",
               alignItems: "center",
               gap: "5px",
+              backgroundColor: "#2ecc71",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              padding: "0 15px",
+              cursor: "pointer",
             }}
           >
             Nova Movimentação <FiPlus size={18} />
@@ -244,6 +348,7 @@ export default function FluxoCaixaPage() {
         </div>
       </div>
 
+      {/* --- TABELA DE RESULTADOS --- */}
       <div className={styles.tableContainer}>
         <div className={styles.tableScroll}>
           <table className={styles.table}>
@@ -258,18 +363,45 @@ export default function FluxoCaixaPage() {
               </tr>
             </thead>
             <tbody>
+              {/* Loader */}
               {loading && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: 20 }}>
-                    Carregando...
+                  <td colSpan={7} style={{ textAlign: "center", padding: 20 }}>
+                    Carregando dados...
                   </td>
                 </tr>
               )}
 
+              {/* Lista Vazia */}
+              {!loading && dadosPaginados.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={7}
+                    style={{
+                      textAlign: "center",
+                      padding: "20px",
+                      color: "#999",
+                    }}
+                  >
+                    Nenhum registro encontrado.
+                  </td>
+                </tr>
+              )}
+
+              {/* Linhas da Tabela */}
               {!loading &&
                 dadosPaginados.map((item) => (
-                  <tr key={item.codmovimentacao}>
-                    <td>{item.descricao}</td>
+                  <tr key={item.idUnico}>
+                    {/* Coluna 2: Descrição */}
+                    <td
+                      style={{
+                        fontWeight: item.tipoOrigem === "PARCELA" ? 500 : 400,
+                      }}
+                    >
+                      {item.descricao}
+                    </td>
+
+                    {/* Coluna 3: Valor (Verde ou Vermelho) */}
                     <td
                       className={
                         item.valor >= 0 ? styles.textGreen : styles.textRed
@@ -277,58 +409,87 @@ export default function FluxoCaixaPage() {
                     >
                       {formatMoney(item.valor)}
                     </td>
+
+                    {/* Coluna 4: Data */}
                     <td>{formatDate(item.datapagamento)}</td>
+
+                    {/* Coluna 5: Categoria */}
                     <td>{item.categoria}</td>
+
+                    {/* Coluna 6: Subcategoria (Tipo) */}
                     <td>{item.subcategoria}</td>
+
+                    {/* Coluna 7: Ações (Editar/Excluir) */}
                     <td className={styles.actionsCell}>
                       <div
                         style={{
                           display: "flex",
                           justifyContent: "center",
-                          gap: "5px",
+                          gap: "8px",
                         }}
                       >
-                        <button
-                          className={styles.actionButton}
-                          title="Editar"
+                        {/* Botão Editar */}
+                        <FiEdit
+                          className={
+                            item.tipoOrigem === "PARCELA"
+                              ? styles.disabledIcon
+                              : styles.actionIcon
+                          }
+                          color={
+                            item.tipoOrigem === "PARCELA" ? "#ccc" : "#f39c12"
+                          }
+                          size={18}
+                          style={{
+                            cursor:
+                              item.tipoOrigem === "PARCELA"
+                                ? "not-allowed"
+                                : "pointer",
+                          }}
                           onClick={() => handleEditarMovimentacao(item)}
-                        >
-                          <FiEdit />
-                        </button>
-                        <button
-                          className={styles.deleteButton}
-                          title="Excluir"
-                          onClick={() => handleExcluir(item.codmovimentacao)}
-                        >
-                          <FiTrash2 />
-                        </button>
+                          title={
+                            item.tipoOrigem === "PARCELA"
+                              ? "Gerenciado em Vendas"
+                              : "Editar"
+                          }
+                        />
+
+                        {/* Botão Excluir */}
+                        <FiTrash2
+                          className={
+                            item.tipoOrigem === "PARCELA"
+                              ? styles.disabledIcon
+                              : styles.actionIcon
+                          }
+                          color={
+                            item.tipoOrigem === "PARCELA" ? "#ccc" : "#e74c3c"
+                          }
+                          size={18}
+                          style={{
+                            cursor:
+                              item.tipoOrigem === "PARCELA"
+                                ? "not-allowed"
+                                : "pointer",
+                          }}
+                          onClick={() => handleExcluir(item)}
+                          title={
+                            item.tipoOrigem === "PARCELA"
+                              ? "Gerenciado em Vendas"
+                              : "Excluir"
+                          }
+                        />
                       </div>
                     </td>
                   </tr>
                 ))}
-
-              {!loading && movimentacoes.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    style={{
-                      textAlign: "center",
-                      padding: "20px",
-                      color: "#999",
-                    }}
-                  >
-                    Nenhuma movimentação encontrada.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
 
+        {/* --- CONTROLES DE PAGINAÇÃO --- */}
         <PaginationControls
           paginaAtual={paginaAtual}
-          totalPaginas={Math.ceil(movimentacoes.length / porPagina) || 1}
-          totalElementos={movimentacoes.length}
+          totalPaginas={Math.ceil(listaUnificada.length / porPagina) || 1}
+          totalElementos={listaUnificada.length}
           porPagina={porPagina}
           onPageChange={setPaginaAtual}
           onItemsPerPageChange={setPorPagina}
