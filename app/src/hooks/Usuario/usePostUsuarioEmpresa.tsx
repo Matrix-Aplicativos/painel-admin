@@ -2,8 +2,8 @@ import { useState, useCallback } from "react";
 import axiosInstance from "../axiosInstance";
 
 export interface CadastroFuncionarioPayload {
-  codFuncionario: number;
-  codEmpresa: number;
+  codFuncionario?: number; 
+  codEmpresa: number; 
   codFuncionarioErp: string;
   nome: string;
   cpf: string;
@@ -12,7 +12,7 @@ export interface CadastroFuncionarioPayload {
 }
 
 export interface UsuarioEmpresaPayload {
-  codUsuario: number;
+  codUsuario?: number;
   codEmpresa: number;
   ativo: boolean;
   cadastroFuncionario: CadastroFuncionarioPayload;

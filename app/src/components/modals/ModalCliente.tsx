@@ -12,9 +12,8 @@ import { MunicipioItem } from "../../hooks/Municipio/useGetMunicipio";
 interface ModalClienteProps {
   isOpen: boolean;
   onClose: () => void;
-  // Agora não recebe mais dados, ele mesmo chama o hook de sucesso
   onSuccess: () => void;
-  initialData?: any; // Recebe o objeto do Supabase (TbClienteItem)
+  initialData?: any;
 }
 
 export default function ModalCliente({
@@ -26,24 +25,16 @@ export default function ModalCliente({
   const [isMunicipioOpen, setIsMunicipioOpen] = useState(false);
   const { saveCliente, loading } = usePostCliente();
 
-  // Estado alinhado com o banco + campos auxiliares de formulário
+  // Estado simplificado para bater com os campos da imagem
   const [formData, setFormData] = useState({
     razaosocial: "",
     cnpj: "",
     cep: "",
-    logradouro: "",
-    numero: "",
+    logradouro: "", // Atua como "Endereço" na imagem
     complemento: "",
-    bairro: "",
-    cidadeNome: "", // Visual
-    observacoes: "",
-    situacao: "1", // Padrão "1" (Ativo)
+    cidadeNome: "",
+    situacao: "1",
   });
-
-  // Função para "explodir" o endereço único do banco nos campos do form
-  // Ex: "Rua A, 123, Centro, Cuiabá" -> logradouro="Rua A", numero="123"...
-  // Como é difícil fazer isso perfeito sem padrão, vamos simplificar:
-  // Se for edição, jogamos o endereço todo no logradouro por enquanto, ou deixamos vazio para o usuário corrigir.
 
   useEffect(() => {
     if (isOpen) {
@@ -52,12 +43,9 @@ export default function ModalCliente({
           razaosocial: initialData.razaosocial || "",
           cnpj: initialData.cnpj || "",
           cep: initialData.cep || "",
-          logradouro: initialData.endereco || "", // Joga tudo aqui por enquanto
-          numero: "",
+          logradouro: initialData.endereco || "",
           complemento: "",
-          bairro: "",
           cidadeNome: "",
-          observacoes: initialData.observacoes || "",
           situacao: initialData.situacao || "1",
         });
       } else {
@@ -66,11 +54,8 @@ export default function ModalCliente({
           cnpj: "",
           cep: "",
           logradouro: "",
-          numero: "",
           complemento: "",
-          bairro: "",
           cidadeNome: "",
-          observacoes: "",
           situacao: "1",
         });
       }
@@ -119,25 +104,22 @@ export default function ModalCliente({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Monta o endereço completo para salvar numa coluna só (padrão do banco legado)
-    // Ex: "Rua X, 123, Apto 10, Centro, Cuiabá - MT"
+    // Concatena endereço para salvar no banco legado
     const partesEndereco = [
       formData.logradouro,
-      formData.numero,
-      formData.complemento,
-      formData.bairro,
+      formData.complemento ? `Comp: ${formData.complemento}` : "",
       formData.cidadeNome,
     ]
       .filter(Boolean)
       .join(", ");
 
     const payload: ClientePayload = {
-      codcliente: initialData?.codcliente || null, // Se tem ID, é update
+      codcliente: initialData?.codcliente || null,
       razaosocial: formData.razaosocial,
-      cnpj: formData.cnpj.replace(/\D/g, ""), // Remove formatação pro banco
+      cnpj: formData.cnpj.replace(/\D/g, ""),
       cep: formData.cep.replace(/\D/g, ""),
-      endereco: partesEndereco, // Salva concatenado
-      observacoes: formData.observacoes,
+      endereco: partesEndereco,
+      observacoes: "", // Campo removido da tela
       situacao: formData.situacao,
     };
 
@@ -176,27 +158,15 @@ export default function ModalCliente({
           </div>
 
           <form className={styles.form} onSubmit={handleSubmit}>
-            {/* Linha 1 */}
+            {/* Linha 1: Razão Social (Full Width) */}
             <div className={styles.formRow}>
               <div className={styles.inputGroup}>
                 <label>Razão Social</label>
                 <input
                   name="razaosocial"
                   type="text"
-                  placeholder="Nome da Empresa"
+                  placeholder="Razão Social do Cliente"
                   value={formData.razaosocial}
-                  onChange={handleChange}
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className={styles.inputGroup}>
-                <label>CNPJ</label>
-                <input
-                  name="cnpj"
-                  type="text"
-                  placeholder="00.000.000/0000-00"
-                  value={formData.cnpj}
                   onChange={handleChange}
                   required
                   disabled={loading}
@@ -204,27 +174,42 @@ export default function ModalCliente({
               </div>
             </div>
 
-            {/* Linha 2 */}
+            {/* Linha 2: CNPJ e CEP */}
             <div className={styles.formRow}>
-              <div className={styles.inputGroup} style={{ flex: 0.4 }}>
+              <div className={styles.inputGroup} style={{ flex: 2 }}>
+                <label>CNPJ</label>
+                <input
+                  name="cnpj"
+                  type="text"
+                  placeholder="CNPJ da Empresa"
+                  value={formData.cnpj}
+                  onChange={handleChange}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div className={styles.inputGroup} style={{ flex: 1 }}>
                 <label>CEP</label>
                 <input
                   name="cep"
                   type="text"
-                  placeholder="00000-000"
+                  placeholder="78000-000"
                   value={formData.cep}
                   onChange={handleChange}
                   disabled={loading}
                 />
               </div>
+            </div>
 
-              <div className={styles.inputGroup}>
+            {/* Linha 3: Cidade e Endereço */}
+            <div className={styles.formRow}>
+              <div className={styles.inputGroup} style={{ flex: 1.2 }}>
                 <label>Cidade</label>
                 <div className={styles.inputWrapperRelative}>
                   <input
                     name="cidadeNome"
                     type="text"
-                    placeholder="Clique para selecionar"
+                    placeholder="Cidade"
                     value={formData.cidadeNome}
                     readOnly
                     onClick={() => !loading && setIsMunicipioOpen(true)}
@@ -246,68 +231,29 @@ export default function ModalCliente({
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Linha 3: Endereço (Quebrado visualmente, mas salvo junto) */}
-            <div className={styles.formRow}>
               <div className={styles.inputGroup} style={{ flex: 2 }}>
-                <label>Logradouro (Rua, Av...)</label>
+                <label>Endereço</label>
                 <input
                   name="logradouro"
                   type="text"
-                  placeholder="Rua das Flores"
+                  placeholder="Endereço do Cliente"
                   value={formData.logradouro}
                   onChange={handleChange}
                   disabled={loading}
                 />
               </div>
-              <div className={styles.inputGroup} style={{ flex: 0.5 }}>
-                <label>Número</label>
-                <input
-                  name="numero"
-                  type="text"
-                  placeholder="123"
-                  value={formData.numero}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-              </div>
             </div>
 
+            {/* Linha 4: Complemento e Situação */}
             <div className={styles.formRow}>
-              <div className={styles.inputGroup}>
-                <label>Bairro</label>
-                <input
-                  name="bairro"
-                  type="text"
-                  placeholder="Centro"
-                  value={formData.bairro}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-              </div>
-              <div className={styles.inputGroup}>
+              <div className={styles.inputGroup} style={{ flex: 2 }}>
                 <label>Complemento</label>
                 <input
                   name="complemento"
                   type="text"
-                  placeholder="Sala 101"
+                  placeholder="Complemento de Endereço"
                   value={formData.complemento}
-                  onChange={handleChange}
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            {/* Linha 4: Observações e Situação */}
-            <div className={styles.formRow}>
-              <div className={styles.inputGroup} style={{ flex: 2 }}>
-                <label>Observações / Integração</label>
-                <input
-                  name="observacoes"
-                  type="text"
-                  placeholder="Ex: 3 Licenças Movix..."
-                  value={formData.observacoes}
                   onChange={handleChange}
                   disabled={loading}
                 />
@@ -328,7 +274,7 @@ export default function ModalCliente({
               </div>
             </div>
 
-            {/* Footer */}
+            {/* Footer com Cancelar e Salvar */}
             <div className={styles.footer}>
               <button
                 type="button"

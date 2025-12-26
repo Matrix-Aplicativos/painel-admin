@@ -90,8 +90,8 @@ export default function UserDetailsPage() {
   const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
   const [isFuncionarioModalOpen, setIsFuncionarioModalOpen] = useState(false);
 
-  const [showDecisionModal, setShowDecisionModal] = useState(false); 
-  const [tempFuncionario, setTempFuncionario] = useState<any>(null); 
+  const [showDecisionModal, setShowDecisionModal] = useState(false);
+  const [tempFuncionario, setTempFuncionario] = useState<any>(null);
 
   const [selectedCompanyId, setSelectedCompanyId] = useState<number | string>(
     ""
@@ -213,7 +213,7 @@ export default function UserDetailsPage() {
 
       if (funcionariosEncontrados && funcionariosEncontrados.length > 0) {
         setTempFuncionario(funcionariosEncontrados[0]);
-        setShowDecisionModal(true); 
+        setShowDecisionModal(true);
       } else {
         setExistingFuncionario(null);
         setIsFuncionarioModalOpen(true);
@@ -227,8 +227,8 @@ export default function UserDetailsPage() {
 
   const handleProceedEdit = () => {
     setShowDecisionModal(false);
-    setExistingFuncionario(tempFuncionario); 
-    setIsFuncionarioModalOpen(true); 
+    setExistingFuncionario(tempFuncionario);
+    setIsFuncionarioModalOpen(true);
   };
   const handleProceedKeep = async () => {
     setShowDecisionModal(false);
@@ -257,14 +257,18 @@ export default function UserDetailsPage() {
   };
 
   const handleSaveFuncionario = async (dadosModal: any) => {
-    if (!usuario || !selectedCompanyId) return;
+    const empresaFinal = dadosModal.codEmpresa
+      ? Number(dadosModal.codEmpresa)
+      : Number(selectedCompanyId);
+
+    if (!usuario || !empresaFinal) return;
 
     let cadastroPayload;
 
     if (existingFuncionario) {
       cadastroPayload = {
         codFuncionario: existingFuncionario.codFuncionario,
-        codEmpresa: existingFuncionario.codEmpresa,
+        codEmpresa: empresaFinal, 
         codFuncionarioErp: dadosModal.codErp,
         nome: dadosModal.nome,
         cpf: dadosModal.cpf,
@@ -273,8 +277,8 @@ export default function UserDetailsPage() {
       };
     } else {
       cadastroPayload = {
-        codFuncionario: null, 
-        codEmpresa: Number(selectedCompanyId),
+        codFuncionario: null,
+        codEmpresa: empresaFinal, 
         codFuncionarioErp: dadosModal.codErp,
         nome: dadosModal.nome,
         cpf: dadosModal.cpf,
@@ -285,7 +289,7 @@ export default function UserDetailsPage() {
 
     const payload = {
       codUsuario: usuario.codUsuario,
-      codEmpresa: Number(selectedCompanyId),
+      codEmpresa: empresaFinal,
       ativo: true,
       cadastroFuncionario: cadastroPayload,
     };
@@ -428,7 +432,7 @@ export default function UserDetailsPage() {
                   borderRadius: "4px",
                   cursor: "pointer",
                 }}
-                onClick={handleProceedKeep} 
+                onClick={handleProceedKeep}
               >
                 Vincular Atual
               </button>
@@ -442,7 +446,7 @@ export default function UserDetailsPage() {
                   borderRadius: "4px",
                   cursor: "pointer",
                 }}
-                onClick={handleProceedEdit} 
+                onClick={handleProceedEdit}
               >
                 Editar Cadastro
               </button>

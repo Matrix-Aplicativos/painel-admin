@@ -336,7 +336,7 @@ export default function FluxoCaixaPage() {
               alignItems: "center",
               gap: "5px",
               backgroundColor: "#2ecc71",
-              color: "#fff",
+              color: "#000",
               border: "none",
               borderRadius: "4px",
               padding: "0 15px",

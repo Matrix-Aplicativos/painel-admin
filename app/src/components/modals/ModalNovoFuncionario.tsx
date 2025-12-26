@@ -17,7 +17,7 @@ interface ModalNovoFuncionarioProps {
   onClose: () => void;
   onSave: (data: FuncionarioData) => void;
   empresaId?: number | string; 
-  initialData?: any;
+  initialData?: any; 
 }
 
 export default function ModalNovoFuncionario({
@@ -38,13 +38,13 @@ export default function ModalNovoFuncionario({
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
+
         setFormData({
           nome: initialData.nome || "",
           cpf: initialData.cpf || "",
           email: initialData.email || "",
-          codErp: initialData.codFuncionarioErp || "",
-          codEmpresa:
-            initialData.codEmpresa !== undefined ? initialData.codEmpresa : "",
+          codErp: initialData.codFuncionarioErp || initialData.codErp || "",
+          codEmpresa: initialData.codEmpresa ?? "",
         });
       } else {
         setFormData({
@@ -52,11 +52,11 @@ export default function ModalNovoFuncionario({
           cpf: "",
           email: "",
           codErp: "",
-          codEmpresa: empresaId !== undefined ? empresaId : "",
+          codEmpresa: empresaId ?? "",
         });
       }
     }
-  }, [isOpen, empresaId, initialData]);
+  }, [isOpen, initialData, empresaId]);
 
   const maskCPF = (value: string) => {
     return value
@@ -82,7 +82,13 @@ export default function ModalNovoFuncionario({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+
+    const payload = {
+      ...formData,
+      codEmpresa: Number(formData.codEmpresa),
+    };
+
+    onSave(payload);
   };
 
   if (!isOpen) return null;
@@ -121,6 +127,7 @@ export default function ModalNovoFuncionario({
                 placeholder="000.000.000-00"
                 value={formData.cpf}
                 onChange={handleChange}
+                maxLength={14}
               />
             </div>
             <div className={styles.inputGroup}>
@@ -150,9 +157,11 @@ export default function ModalNovoFuncionario({
               <label>Cód. Empresa (Vínculo)</label>
               <input
                 name="codEmpresa"
-                type="text"
+                type="number"
+                placeholder="Cód. Empresa"
                 value={formData.codEmpresa}
                 onChange={handleChange}
+                required
               />
             </div>
           </div>
