@@ -22,7 +22,7 @@ import usePostEmpresa, {
 } from "@/app/src/hooks/Empresa/usePostEmpresa";
 import useGetConfigMovix from "@/app/src/hooks/Configuracao/useGetConfigMovix";
 import useGetConfigFdv from "@/app/src/hooks/Configuracao/useGetConfigFdv";
-import { MunicipioItem } from "@/app/src/hooks/Geral/useGetMunicipio";
+import { MunicipioItem } from "@/app/src/hooks/Municipio/useGetMunicipio";
 
 interface EmpresaPayloadExtended extends EmpresaPayload {
   diaVencimentoBoleto?: number;

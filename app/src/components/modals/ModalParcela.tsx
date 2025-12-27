@@ -92,11 +92,9 @@ export default function ModalParcela({
     return v;
   };
 
-  // --- HANDLERS ---
-  const abrirCalendario = (ref: React.RefObject<HTMLInputElement>) => {
+  const abrirCalendario = (ref: React.RefObject<HTMLInputElement | null>) => {
     try {
       if (ref.current) {
-        // @ts-ignore
         if (ref.current.showPicker) ref.current.showPicker();
         else {
           ref.current.focus();

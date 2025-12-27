@@ -96,13 +96,12 @@ export default function ClientesPage() {
       <ModalCliente
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleSalvarCliente}
+        onSuccess={handleSalvarCliente} 
         initialData={null}
       />
 
       <h1 className={styles.title}>CLIENTES</h1>
 
-      {/* ÁREA DE FILTROS ADAPTADA */}
       <div className={styles.searchContainer}>
         <div
           style={{
