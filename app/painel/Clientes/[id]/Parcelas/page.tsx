@@ -8,7 +8,6 @@ import { useParams } from "next/navigation";
 import ModalParcela from "@/app/src/components/modals/ModalParcela";
 import PaginationControls from "@/app/src/components/PaginationControls";
 
-// HOOKS
 import useGetClienteById from "@/app/src/hooks/Cliente/useGetClienteById";
 import useGetParcelas, {
   ParcelaItem,
@@ -18,7 +17,6 @@ import usePostParcela, {
 } from "@/app/src/hooks/Financeiro/usePostParcelas";
 import useDeleteParcela from "@/app/src/hooks/Financeiro/useDeleteParcelas";
 
-// Mapeamento dos tipos
 const TIPOS_MAP: Record<string, string> = {
   A: "Ativação",
   M: "Manutenção",
@@ -30,19 +28,15 @@ export default function ParcelasPage() {
   const params = useParams();
   const idCliente = Number(params.id);
 
-  // Busca dados
   const { cliente } = useGetClienteById(idCliente);
   const { parcelas, loading, refetch } = useGetParcelas(idCliente);
 
-  // Ações
   const { saveParcela } = usePostParcela();
   const { deleteParcela } = useDeleteParcela();
 
-  // Estados
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [parcelaSelecionada, setParcelaSelecionada] = useState<any>(null);
 
-  // Paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
   const porPagina = 20;
   const parcelasPaginadas = parcelas.slice(
@@ -66,15 +60,20 @@ export default function ParcelasPage() {
     }
   };
 
-  // Helper para converter data DD/MM/AAAA para YYYY-MM-DD
   const parseDateToISO = (dateStr: string) => {
     if (!dateStr) return null;
     const [day, month, year] = dateStr.split("/");
     return `${year}-${month}-${day}`;
   };
 
+  const formatDateTable = (dateStr: string) => {
+    if (!dateStr) return "-";
+    const cleanDate = dateStr.split("T")[0];
+    const [year, month, day] = cleanDate.split("-");
+    return `${day}/${month}/${year}`;
+  };
+
   const handleSalvar = async (dadosForm: any) => {
-    // Limpa valor monetário "R$ 1.000,00" -> 1000.00
     const valorNumerico =
       typeof dadosForm.valor === "string"
         ? Number(
@@ -131,7 +130,7 @@ export default function ParcelasPage() {
           <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
             <Link
               href={`/painel/Clientes/${idCliente}`}
-              style={{ color: "#333", display: "flex" }} 
+              style={{ color: "#333", display: "flex" }}
             >
               <FiArrowLeft size={24} />
             </Link>
@@ -182,9 +181,7 @@ export default function ParcelasPage() {
                         currency: "BRL",
                       })}
                     </td>
-                    <td>
-                      {new Date(item.datavencimento).toLocaleDateString()}
-                    </td>
+                    <td>{formatDateTable(item.datavencimento)}</td>
                     <td>{TIPOS_MAP[item.tipo] || item.tipo}</td>
                     <td>
                       <span
@@ -199,7 +196,7 @@ export default function ParcelasPage() {
                     </td>
                     <td>
                       {item.datapagamento
-                        ? new Date(item.datapagamento).toLocaleDateString()
+                        ? formatDateTable(item.datapagamento)
                         : "-"}
                     </td>
                     <td className={styles.actionsCell}>

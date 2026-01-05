@@ -39,11 +39,13 @@ export default function ModalParcela({
     pago: false,
   });
 
-  // Função auxiliar para formatar data YYYY-MM-DD -> DD/MM/AAAA
   const formatDateDisplay = (isoDate: string) => {
     if (!isoDate) return "";
-    const date = new Date(isoDate);
-    return date.toLocaleDateString("pt-BR");
+    if (isoDate.includes("-")) {
+      const [year, month, day] = isoDate.split("-");
+      return `${day}/${month}/${year}`;
+    }
+    return isoDate;
   };
 
   useEffect(() => {
@@ -74,7 +76,6 @@ export default function ModalParcela({
     }
   }, [isOpen, initialData]);
 
-  // --- MÁSCARAS ---
   const maskCurrency = (value: string) => {
     const cleanValue = value.replace(/\D/g, "");
     if (!cleanValue) return "";
@@ -151,7 +152,6 @@ export default function ModalParcela({
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
-          {/* Nº Parcela */}
           <div className={styles.inputGroup}>
             <label>Nº da Parcela</label>
             <input
@@ -164,7 +164,6 @@ export default function ModalParcela({
             />
           </div>
 
-          {/* Valor */}
           <div className={styles.inputGroup}>
             <label>Valor</label>
             <input
@@ -177,7 +176,6 @@ export default function ModalParcela({
             />
           </div>
 
-          {/* Vencimento */}
           <div className={styles.inputGroup}>
             <label>Data Vencimento</label>
             <div className={styles.dateWrapper}>
@@ -206,7 +204,6 @@ export default function ModalParcela({
             </div>
           </div>
 
-          {/* Tipo */}
           <div className={styles.inputGroup}>
             <label>Tipo</label>
             <select
@@ -218,12 +215,11 @@ export default function ModalParcela({
               <option value="">Selecione</option>
               <option value="A">Ativação</option>
               <option value="M">Manutenção</option>
-              
+              <option value="S">Serviço</option>
               <option value="O">Outros</option>
             </select>
           </div>
 
-          {/* Pagamento (Opcional) */}
           <div className={styles.inputGroup}>
             <label>Data Pagamento</label>
             <div className={styles.dateWrapper}>
@@ -251,7 +247,6 @@ export default function ModalParcela({
             </div>
           </div>
 
-          {/* MODAL FOOTER - Botão alinhado à direita */}
           <div className={styles.modalFooter}>
             <button type="submit" className={styles.btnSave}>
               Salvar <FiCheck />

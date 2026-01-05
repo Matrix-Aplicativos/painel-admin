@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/app/src/lib/supabaseClient";
-import { hexToBlob } from "@/app/src/utils/fileConverters"; 
+import { hexToBlob } from "@/app/src/utils/fileConverters";
 
 export interface DocumentoItem {
-  CodDocumento: number;
-  Nome: string;
-  DataCadastro: string;
+  coddocumento: number;
+  nome: string;
+  datacadastro: string;
 }
 
 const useGetDocumentos = () => {
@@ -23,7 +23,7 @@ const useGetDocumentos = () => {
       if (error) throw error;
       setDocumentos((data as any[]) || []);
     } catch (err) {
-      console.error("Erro ao buscar documentos:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -33,7 +33,7 @@ const useGetDocumentos = () => {
     fetchDocumentos();
   }, [fetchDocumentos]);
 
-  const downloadDocumento = async (id: number, nomeArquivo: string) => {
+  const openDocumento = async (id: number) => {
     try {
       const { data, error } = await supabase
         .from("tbdocumento")
@@ -42,22 +42,15 @@ const useGetDocumentos = () => {
         .single();
 
       if (error) throw error;
-      if (!data || !data.arquivo)
-        throw new Error("Arquivo vazio ou não encontrado.");
+      if (!data || !data.arquivo) throw new Error("Arquivo vazio");
 
-      const blob = hexToBlob(data.arquivo, "application/pdf"); 
-
+      const blob = hexToBlob(data.arquivo, "application/pdf");
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = nomeArquivo; 
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+
+      window.open(url, "_blank");
     } catch (err) {
-      console.error("Erro ao baixar documento:", err);
-      alert("Erro ao baixar o arquivo.");
+      console.error(err);
+      alert("Erro ao abrir o arquivo.");
     }
   };
 
@@ -65,7 +58,7 @@ const useGetDocumentos = () => {
     documenti: documentos,
     loading,
     refetch: fetchDocumentos,
-    downloadDocumento,
+    openDocumento,
   };
 };
 

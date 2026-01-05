@@ -1,42 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { FiPlus, FiFileText, FiTrash2 } from "react-icons/fi";
+import { FiPlus, FiFileText, FiTrash2, FiExternalLink } from "react-icons/fi";
 import PaginationControls from "@/app/src/components/PaginationControls";
-
-// Hooks (Certifique-se que seus hooks retornam coddocumento, nome, etc em minúsculo)
-import useGetDocumentos from "@/app/src/hooks/Documentos/useGetDocumentos";
+import useGetDocumentos, {
+  DocumentoItem,
+} from "@/app/src/hooks/Documentos/useGetDocumentos";
 import usePostDocumento from "@/app/src/hooks/Documentos/usePostDocumentos";
 import useDeleteDocumento from "@/app/src/hooks/Documentos/useDeleteDocumentos";
-
-// Componentes
 import ModalNovoDocumento from "@/app/src/components/modals/ModalNovoDocumento";
-
-// CSS Module
 import styles from "./DocumentosPage.module.css";
 
-// Interface para tipagem (Tudo minúsculo conforme Supabase)
-interface DocumentoItem {
-  coddocumento: number;
-  nome: string;
-  datacadastro: string;
-}
-
 export default function DocumentosPage() {
-  // Estados
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Hooks
-  const { documenti, loading, refetch, downloadDocumento } = useGetDocumentos();
+  const { documenti, loading, refetch, openDocumento } = useGetDocumentos();
   const { saveDocumento, loading: loadingSave } = usePostDocumento();
   const { deleteDocumento } = useDeleteDocumento();
 
-  // Casting para garantir tipagem correta com minúsculas
   const listaDocs = (documenti as unknown as DocumentoItem[]) || [];
-
-  // Lógica de Paginação
   const totalElementos = listaDocs.length;
   const totalPaginas = Math.ceil(totalElementos / porPagina) || 1;
   const dadosPaginados = listaDocs.slice(
@@ -44,12 +28,11 @@ export default function DocumentosPage() {
     paginaAtual * porPagina
   );
 
-  // Handlers
   const handleSalvarDocumento = async (nome: string, arquivo: File) => {
     const sucesso = await saveDocumento(nome, arquivo);
     if (sucesso) {
       setIsModalOpen(false);
-      refetch(); // Recarrega a lista
+      refetch();
     }
   };
 
@@ -68,7 +51,6 @@ export default function DocumentosPage() {
         Novo Documento <FiPlus size={18} />
       </button>
 
-      {/* --- GRID DE CARDS --- */}
       {loading ? (
         <p>Carregando documentos...</p>
       ) : (
@@ -83,16 +65,16 @@ export default function DocumentosPage() {
                 <div className={styles.iconWrapper}>
                   <FiFileText size={35} color="#3498db" />
                 </div>
-                {/* Acessando propriedades em minúsculo */}
                 <span className={styles.cardTitle}>{doc.nome}</span>
               </div>
 
               <div className={styles.actionsRow}>
                 <button
                   className={styles.btnAcessar}
-                  onClick={() => downloadDocumento(doc.coddocumento, doc.nome)}
+                  onClick={() => openDocumento(doc.coddocumento)}
+                  title="Abrir em nova guia"
                 >
-                  Acessar
+                  Acessar <FiExternalLink size={14} style={{ marginLeft: 5 }} />
                 </button>
                 <button
                   className={styles.btnDelete}
@@ -107,7 +89,6 @@ export default function DocumentosPage() {
         </div>
       )}
 
-      {/* Paginação */}
       <div className={styles.paginationWrapper}>
         <PaginationControls
           paginaAtual={paginaAtual}
@@ -119,7 +100,6 @@ export default function DocumentosPage() {
         />
       </div>
 
-      {/* Modal */}
       <ModalNovoDocumento
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

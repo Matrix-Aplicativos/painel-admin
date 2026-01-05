@@ -5,25 +5,55 @@ import {
   FiUsers,
   FiDollarSign,
   FiAlertCircle,
-  FiActivity, // Icone generico para lista vazia
+  FiActivity,
 } from "react-icons/fi";
 import Link from "next/link";
 
 // Hooks
 import useGetDashboardStats from "@/app/src/hooks/Dashboard/useGetDashboardStats";
 import useGetRecentActivities from "@/app/src/hooks/Dashboard/useGetRecentActivities";
+import useGetVencimentos from "@/app/src/hooks/Financeiro/useGetVencimentos";
+import useGetIntegracao from "../src/hooks/Integracao/useGetIntegracao";
 
 export default function HomePage() {
   const { stats, loading: loadingStats } = useGetDashboardStats();
   const { atividades, loading: loadingActivities } = useGetRecentActivities();
+  const { integracoes, loading: loadingIntegracoes } = useGetIntegracao({
+    pagina: 1,
+    porPagina: 100,
+  });
 
-  // Função auxiliar de formatação monetária
+  const todayDate = new Date();
+  const currentMonth = todayDate.getMonth();
+  const currentYear = todayDate.getFullYear();
+  const currentDay = todayDate.getDate();
+
+  const { vencimentos, loading: loadingVencimentos } = useGetVencimentos(
+    currentMonth,
+    currentYear
+  );
+
+  const todayString = `${currentYear}-${String(currentMonth + 1).padStart(
+    2,
+    "0"
+  )}-${String(currentDay).padStart(2, "0")}`;
+
+  const vencimentosHojeCount = vencimentos
+    ? vencimentos.filter((v) => v.data === todayString).length
+    : 0;
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
     }).format(val);
   };
+
+  const totalIntegracoes =
+    (integracoes as any)?.qtdElementos ||
+    (integracoes as any)?.conteudo?.length ||
+    integracoes?.length ||
+    0;
 
   const cardsData = [
     {
@@ -40,13 +70,13 @@ export default function HomePage() {
     },
     {
       label: "Integrações Ativas",
-      valor: loadingStats ? "..." : stats.novasIntegracoes,
+      valor: loadingIntegracoes ? "..." : totalIntegracoes,
       icon: <FiTrendingUp size={24} />,
       color: "#ffc107",
     },
     {
       label: "Vencimentos Hoje",
-      valor: loadingStats ? "..." : stats.vencimentosHoje,
+      valor: loadingVencimentos ? "..." : vencimentosHojeCount,
       icon: <FiAlertCircle size={24} />,
       color: "#dc3545",
     },
@@ -54,14 +84,12 @@ export default function HomePage() {
 
   return (
     <div style={{ color: "var(--header-text-color)", paddingBottom: "40px" }}>
-      {/* HEADER */}
       <h1
         style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "20px" }}
       >
         Visão Geral
       </h1>
 
-      {/* CARDS GRID */}
       <div
         style={{
           display: "grid",
@@ -74,7 +102,7 @@ export default function HomePage() {
           <div
             key={index}
             style={{
-              backgroundColor: "var(--modal-bg-color, #fff)", // fallback para branco se variavel falhar
+              backgroundColor: "var(--modal-bg-color, #fff)",
               border: "1px solid var(--wrapper-border-color, #e0e0e0)",
               padding: "20px",
               borderRadius: "8px",
@@ -121,7 +149,6 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* SEÇÃO INFERIOR GRID */}
       <div
         style={{
           display: "grid",
@@ -129,7 +156,6 @@ export default function HomePage() {
           gap: "20px",
         }}
       >
-        {/* TABELA DE ATIVIDADES RECENTES */}
         <div
           style={{
             backgroundColor: "var(--modal-bg-color, #fff)",
@@ -263,10 +289,9 @@ export default function HomePage() {
           </table>
         </div>
 
-        {/* CARD DE BOAS VINDAS / AÇÃO */}
         <div
           style={{
-            backgroundColor: "var(--button-active-bg-color, #1769e3)", // Cor primária
+            backgroundColor: "var(--button-active-bg-color, #1769e3)",
             color: "#fff",
             borderRadius: "8px",
             padding: "30px",
@@ -295,7 +320,7 @@ export default function HomePage() {
               lineHeight: "1.5",
             }}
           >
-            Você tem <strong>{stats.vencimentosHoje} vencimentos</strong>{" "}
+            Você tem <strong>{vencimentosHojeCount} vencimentos</strong>{" "}
             pendentes para hoje e o faturamento do dia está em{" "}
             <strong>{formatCurrency(stats.faturamentoHoje)}</strong>.
           </p>

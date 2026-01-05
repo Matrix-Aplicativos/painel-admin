@@ -3,10 +3,11 @@ import { supabase } from "../../lib/supabaseClient";
 
 export interface VencimentoItem {
   id: number;
+  codCliente: number; 
   cliente: string;
   valor: number;
-  data: string; // YYYY-MM-DD
-  categoria: string; // Tipo da parcela
+  data: string;
+  categoria: string;
   status: "pago" | "pendente" | "atrasado";
 }
 
@@ -31,9 +32,9 @@ const useGetVencimentos = (month: number, year: number) => {
           datavencimento,
           tipo,
           pago,
-          tbcliente ( razaosocial ) 
+          tbcliente ( codcliente, razaosocial ) 
         `
-        ) 
+        )
         .gte("datavencimento", startDate)
         .lte("datavencimento", endDate);
 
@@ -48,6 +49,8 @@ const useGetVencimentos = (month: number, year: number) => {
 
           return {
             id: p.codparcela,
+            // MUDANÇA AQUI: Pegando o ID que veio do Join
+            codCliente: p.tbcliente?.codcliente,
             cliente: p.tbcliente?.razaosocial || "Cliente Desconhecido",
             valor: p.valor,
             data: p.datavencimento,

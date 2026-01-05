@@ -96,6 +96,9 @@
   font-size: 13px;
   font-weight: 400;
   transition: background-color 0.2s;
+  display: flex;
+  justify-content: center;
+  
 }
 
 .btnAcessar:hover {

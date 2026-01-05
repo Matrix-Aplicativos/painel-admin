@@ -31,7 +31,6 @@ import useGetContatos, {
 // --- MODAL ---
 import ModalContato from "@/app/src/components/modals/ModalContato";
 
-// 1. Mapeamento de Tipos
 const TIPOS_MAP: Record<string, string> = {
   A: "Ativação",
   M: "Manutenção",
@@ -73,7 +72,6 @@ export default function ClientDetailsPage() {
     observacoes: "",
   });
 
-  // Carrega dados do cliente no form
   useEffect(() => {
     if (cliente) {
       setFormData({
@@ -86,6 +84,24 @@ export default function ClientDetailsPage() {
       });
     }
   }, [cliente]);
+
+  // Lógica de Filtragem de Parcelas (Apenas em aberto e não vencidas)
+  const parcelasFiltradas = parcelas.filter((p) => {
+    // 1. Se já está pago, ignora
+    if (p.pago) return false;
+
+    // 2. Verifica se a data de vencimento é hoje ou futuro
+    if (!p.datavencimento) return false;
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    // Converte string YYYY-MM-DD para data local corretamente
+    const [ano, mes, dia] = p.datavencimento.toString().split("-");
+    const dataVenc = new Date(Number(ano), Number(mes) - 1, Number(dia));
+
+    return dataVenc >= hoje;
+  });
 
   // --- HANDLERS CLIENTE ---
   const handleInputChange = (
@@ -175,7 +191,6 @@ export default function ClientDetailsPage() {
     router.push(`/painel/Clientes/${id}/Parcelas`);
   };
 
-  // Helpers de Status
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "1":
@@ -211,7 +226,6 @@ export default function ClientDetailsPage() {
 
       {/* HEADER */}
       <div className={styles.header}>
-        {/* Container flex para Seta + Título */}
         <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
           <Link
             href="/painel/Clientes"
@@ -501,7 +515,6 @@ export default function ClientDetailsPage() {
           <div className={styles.paymentSection}>
             <h3>Pagamentos em Aberto</h3>
 
-            {/* 2. Cabeçalho com grid ajustado (via CSS styles.paymentRow) */}
             <div className={`${styles.paymentRow} ${styles.paymentHeader}`}>
               <span>Vencimento</span>
               <span>Valor</span>
@@ -512,16 +525,19 @@ export default function ClientDetailsPage() {
               {loadingParcelas && (
                 <p style={{ fontSize: 12, padding: 10 }}>Carregando...</p>
               )}
-              {!loadingParcelas && parcelas.length === 0 && (
+              {!loadingParcelas && parcelasFiltradas.length === 0 && (
                 <p style={{ fontSize: 12, padding: 10 }}>
-                  Nenhuma parcela em aberto.
+                  Nenhuma parcela em aberto para os próximos dias.
                 </p>
               )}
 
-              {/* 3. Renderização corrigida com Mapa e Alinhamento */}
-              {parcelas.map((p) => (
+              {parcelasFiltradas.map((p) => (
                 <div key={p.codparcela} className={styles.paymentRow}>
-                  <span>{new Date(p.datavencimento).toLocaleDateString()}</span>
+                  <span>
+                    {new Date(p.datavencimento).toLocaleDateString("pt-BR", {
+                      timeZone: "UTC",
+                    })}
+                  </span>
                   <span>
                     {Number(p.valor).toLocaleString("pt-BR", {
                       style: "currency",

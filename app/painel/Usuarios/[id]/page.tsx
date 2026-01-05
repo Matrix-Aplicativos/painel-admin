@@ -608,7 +608,7 @@ export default function UserDetailsPage() {
           className={styles.primaryButton}
           onClick={() => setIsRoleModalOpen(true)}
           disabled={isEditing}
-          style={{width: '140px', display: 'flex', justifyContent: 'center'}}
+          style={{width: '170px', display: 'flex', justifyContent: 'center'}}
         >
           Novo Cargo <FiPlus size={16} />
         </button>
@@ -640,6 +640,7 @@ export default function UserDetailsPage() {
           className={styles.primaryButton}
           onClick={() => setIsCompanyModalOpen(true)}
           disabled={isEditing || loadingVincular}
+          style={{width: '170px', display: 'flex', justifyContent: 'center'}}
         >
           Vincular Empresa <FiPlus size={16} />
         </button>

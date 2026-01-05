@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // 1. Importar useRouter
 import styles from "./Calendar.module.css";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import useGetVencimentos from "@/app/src/hooks/Financeiro/useGetVencimentos";
@@ -13,6 +14,7 @@ const TIPOS_MAP: Record<string, string> = {
 };
 
 export default function VencimentosPage() {
+  const router = useRouter(); // 2. Instanciar router
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const year = currentDate.getFullYear();
@@ -91,6 +93,11 @@ export default function VencimentosPage() {
                 className={`${styles.eventCard} ${getStatusClass(
                   event.status
                 )}`}
+                onClick={(e) => {
+                  e.stopPropagation(); 
+                  router.push(`/painel/Clientes/${event.codCliente}/Parcelas`);
+                }}
+                style={{ cursor: "pointer" }}
                 title={`${event.cliente} - ${
                   TIPOS_MAP[event.categoria] || event.categoria
                 } - R$ ${event.valor}`}
@@ -114,6 +121,7 @@ export default function VencimentosPage() {
       );
     }
 
+    // ... restante da função renderDays (células do próximo mês) ...
     const filledCells = days.length;
     const remainingCells = totalCells - filledCells;
 
@@ -131,6 +139,7 @@ export default function VencimentosPage() {
     return days;
   };
 
+  // ... restante do componente (formatMonthYear e return principal) ...
   const formatMonthYear = (date: Date) => {
     const str = date.toLocaleDateString("pt-BR", {
       month: "long",
