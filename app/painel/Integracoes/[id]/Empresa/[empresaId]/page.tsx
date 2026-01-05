@@ -10,6 +10,7 @@ import {
   FiSearch,
   FiCheckSquare,
   FiSquare,
+  FiArrowLeft,
 } from "react-icons/fi";
 import styles from "./DetalhesEmpresa.module.css";
 import tableStyles from "@/app/src/components/Tabelas.module.css";
@@ -152,13 +153,33 @@ export default function CompanyDetailsPage() {
     refetchFdv();
 
     setIsModalConfigOpen(false);
-    alert("Configuração atualizada com sucesso!"); 
+    alert("Configuração atualizada com sucesso!");
   };
 
   //Declaração de Funções de renderização
   const renderHeader = () => (
     <div className={styles.header}>
       <div className={styles.titleArea}>
+        <div>
+          <button
+            onClick={() => router.push(`/painel/Integracoes/${integracaoId}`)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#000",
+              fontSize: "14px",
+              padding: "0",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.color = "#000")}
+            onMouseOut={(e) => (e.currentTarget.style.color = "#000")}
+          >
+            <FiArrowLeft size={24} />
+          </button>
+        </div>
         <h1 className={styles.title}>{empresa?.razaoSocial?.toUpperCase()}</h1>
         <span
           className={`${styles.statusBadge} ${
@@ -520,9 +541,14 @@ export default function CompanyDetailsPage() {
                       <button
                         className={`${styles.btn} ${styles.btnBlue}`}
                         style={{
-                          padding: "4px 12px",
-                          minWidth: "auto",
-                          fontSize: "12px",
+                          height: "25px",
+                          fontSize: "13px",
+                          fontWeight: "400",
+                          borderRadius: "6px",
+                          padding: "0 16px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
                         }}
                         onClick={() => handleEditConfig(conf, "MOVIX")}
                       >

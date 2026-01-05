@@ -10,7 +10,8 @@ import {
   FiRefreshCw,
   FiPlus,
   FiX,
-  FiUserCheck, // Ícone para "Cadastro Encontrado"
+  FiUserCheck,
+  FiArrowLeft, // <--- Importado aqui
 } from "react-icons/fi";
 import styles from "../DetalhesUsuario.module.css";
 import tableStyles from "@/app/src/components/Tabelas.module.css";
@@ -268,7 +269,7 @@ export default function UserDetailsPage() {
     if (existingFuncionario) {
       cadastroPayload = {
         codFuncionario: existingFuncionario.codFuncionario,
-        codEmpresa: empresaFinal, 
+        codEmpresa: empresaFinal,
         codFuncionarioErp: dadosModal.codErp,
         nome: dadosModal.nome,
         cpf: dadosModal.cpf,
@@ -278,7 +279,7 @@ export default function UserDetailsPage() {
     } else {
       cadastroPayload = {
         codFuncionario: null,
-        codEmpresa: empresaFinal, 
+        codEmpresa: empresaFinal,
         codFuncionarioErp: dadosModal.codErp,
         nome: dadosModal.nome,
         cpf: dadosModal.cpf,
@@ -472,6 +473,26 @@ export default function UserDetailsPage() {
       {/* HEADER */}
       <div className={styles.header}>
         <div className={styles.titleArea}>
+          <div>
+            <button
+              onClick={() => router.push("/painel/Usuarios")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#000",
+                fontSize: "14px",
+                padding: "0",
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.color = "#000")}
+              onMouseOut={(e) => (e.currentTarget.style.color = "#000")}
+            >
+              <FiArrowLeft size={24} />
+            </button>
+          </div>
           <h1 className={styles.title}>{usuario.nome?.toUpperCase()}</h1>
           <span
             className={`${styles.statusBadge} ${
@@ -581,34 +602,36 @@ export default function UserDetailsPage() {
         </div>
       </div>
 
-      {/* CARGOS */}
-      <div className={styles.sectionTitle}>Cargos</div>
-      <button
-        className={styles.primaryButton}
-        onClick={() => setIsRoleModalOpen(true)}
-        disabled={isEditing}
-      >
-        Novo <FiPlus size={16} />
-      </button>
+      <div>
+        <div className={styles.sectionTitle}>Cargos</div>
+        <button
+          className={styles.primaryButton}
+          onClick={() => setIsRoleModalOpen(true)}
+          disabled={isEditing}
+          style={{width: '140px', display: 'flex', justifyContent: 'center'}}
+        >
+          Novo Cargo <FiPlus size={16} />
+        </button>
 
-      {loadingCargos ? (
-        <p style={{ padding: "20px", color: "#666" }}>Carregando cargos...</p>
-      ) : (
-        <div className={styles.rolesGrid}>
-          <div className={styles.roleColumn}>
-            <div className={styles.roleHeader}>Movix</div>
-            {renderCargoColumn(cargosMovix)}
+        {loadingCargos ? (
+          <p style={{ padding: "20px", color: "#666" }}>Carregando cargos...</p>
+        ) : (
+          <div className={styles.rolesGrid}>
+            <div className={styles.roleColumn}>
+              <div className={styles.roleHeader}>Movix</div>
+              {renderCargoColumn(cargosMovix)}
+            </div>
+            <div className={styles.roleColumn}>
+              <div className={styles.roleHeader}>Força de Vendas</div>
+              {renderCargoColumn(cargosFdv)}
+            </div>
+            <div className={styles.roleColumn}>
+              <div className={styles.roleHeader}>Outros</div>
+              {renderCargoColumn(cargosOutros)}
+            </div>
           </div>
-          <div className={styles.roleColumn}>
-            <div className={styles.roleHeader}>Força de Vendas</div>
-            {renderCargoColumn(cargosFdv)}
-          </div>
-          <div className={styles.roleColumn}>
-            <div className={styles.roleHeader}>Outros</div>
-            {renderCargoColumn(cargosOutros)}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* EMPRESAS */}
       <div className={styles.companiesSection}>
@@ -651,7 +674,14 @@ export default function UserDetailsPage() {
                         {emp.ativo ? "ATIVO" : "INATIVO"}
                       </span>
                     </td>
-                    <td>
+                    {/* CÉLULA COM OS BOTÕES REAJUSTADOS */}
+                    <td
+                      style={{
+                        display: "flex",
+                        gap: "8px",
+                        alignItems: "center",
+                      }}
+                    >
                       <button
                         className={`${styles.btnTableAction} ${styles.btnFuncionario}`}
                         onClick={() => {
@@ -659,6 +689,18 @@ export default function UserDetailsPage() {
                           handleSelectCompany(emp);
                         }}
                         disabled={isEditing}
+                        style={{
+                          height: "32px",
+                          fontSize: "13px",
+                          fontWeight: "400",
+                          borderRadius: "6px",
+                          padding: "0 16px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          whiteSpace: "nowrap",
+                          cursor: isEditing ? "not-allowed" : "pointer",
+                        }}
                       >
                         Cadastro de Funcionário
                       </button>
@@ -666,6 +708,20 @@ export default function UserDetailsPage() {
                         className={`${styles.btnTableAction} ${styles.btnRemover}`}
                         onClick={() => handleUnlinkCompany(emp.codEmpresa)}
                         disabled={isEditing || loadingDesvincular}
+                        style={{
+                          height: "32px",
+                          fontSize: "13px",
+                          fontWeight: "400",
+                          borderRadius: "6px",
+                          padding: "0 16px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor:
+                            isEditing || loadingDesvincular
+                              ? "not-allowed"
+                              : "pointer",
+                        }}
                       >
                         Remover
                       </button>
@@ -674,7 +730,10 @@ export default function UserDetailsPage() {
                 ))}
                 {empresasPaginadas.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ textAlign: "center" }}>
+                    <td
+                      colSpan={5}
+                      style={{ textAlign: "center", padding: "20px" }}
+                    >
                       Nenhuma empresa vinculada.
                     </td>
                   </tr>

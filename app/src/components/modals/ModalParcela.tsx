@@ -11,14 +11,14 @@ interface ParcelaData {
   datavencimento: string;
   tipo: string;
   datapagamento: string;
-  pago: boolean; // Adicionado para controle visual, se precisar
+  pago: boolean;
 }
 
 interface ModalParcelaProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: ParcelaData) => void;
-  initialData?: any; // Pode vir do banco
+  initialData?: any;
 }
 
 export default function ModalParcela({
@@ -218,7 +218,7 @@ export default function ModalParcela({
               <option value="">Selecione</option>
               <option value="A">Ativação</option>
               <option value="M">Manutenção</option>
-              <option value="S">Serviço</option>
+              
               <option value="O">Outros</option>
             </select>
           </div>
@@ -251,9 +251,12 @@ export default function ModalParcela({
             </div>
           </div>
 
-          <button type="submit" className={styles.btnSave}>
-            Salvar <FiCheck />
-          </button>
+          {/* MODAL FOOTER - Botão alinhado à direita */}
+          <div className={styles.modalFooter}>
+            <button type="submit" className={styles.btnSave}>
+              Salvar <FiCheck />
+            </button>
+          </div>
         </form>
       </div>
     </div>

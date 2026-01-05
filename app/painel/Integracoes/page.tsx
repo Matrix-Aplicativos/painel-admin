@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FiLink, FiPlus, FiSearch } from "react-icons/fi";
+import { FiArrowLeft, FiLink, FiPlus, FiSearch } from "react-icons/fi";
 import styles from "@/app/src/components/Tabelas.module.css";
 import ModalIntegracao from "@/app/src/components/modals/ModalIntegracao";
 import PaginationControls from "@/app/src/components/PaginationControls";
@@ -160,7 +160,7 @@ export default function IntegracoesPage() {
         onSaveSuccess={handleSuccessSave}
         initialData={null}
       />
-
+      
       <h1 className={styles.title}>INTEGRAÇÕES</h1>
 
       <div className={styles.searchContainer}>

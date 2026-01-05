@@ -1,9 +1,17 @@
 "use client";
 
 import styles from "../DetalhesCliente.module.css";
-import { FiEdit2, FiTrash2, FiCheck, FiPlus, FiX } from "react-icons/fi";
+import {
+  FiEdit2,
+  FiTrash2,
+  FiCheck,
+  FiPlus,
+  FiX,
+  FiArrowLeft,
+} from "react-icons/fi";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 // --- HOOKS ---
 import useGetClienteById from "@/app/src/hooks/Cliente/useGetClienteById";
@@ -203,7 +211,17 @@ export default function ClientDetailsPage() {
 
       {/* HEADER */}
       <div className={styles.header}>
-        <h1 className={styles.title}>{cliente.razaosocial?.toUpperCase()}</h1>
+        {/* Container flex para Seta + Título */}
+        <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+          <Link
+            href="/painel/Clientes"
+            style={{ color: "#333", display: "flex", alignItems: "center" }}
+          >
+            <FiArrowLeft size={24} />
+          </Link>
+          <h1 className={styles.title}>{cliente.razaosocial?.toUpperCase()}</h1>
+        </div>
+
         <span
           className={getStatusClass(cliente.situacao)}
           style={

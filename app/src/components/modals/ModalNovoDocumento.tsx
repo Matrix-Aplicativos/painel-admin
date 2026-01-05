@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { FiX, FiCheck, FiUpload } from "react-icons/fi";
 import { FaLaptop } from "react-icons/fa";
-import "./ModalNovoDocumento.css"; // Importação do CSS separado
+import "./ModalNovoDocumento.css";
 
 interface ModalNovoDocumentoProps {
   isOpen: boolean;
@@ -67,11 +67,11 @@ export default function ModalNovoDocumento({
   }`;
 
   return (
-    <div className="overlay">
-      <div className="modal">
+    <div className="modalOverlay">
+      <div className="modalContent">
         {/* Header */}
-        <div className="header">
-          <h2 className="title">Novo Documento</h2>
+        <div className="modalHeader">
+          <h2 className="modalTitle">Novo Documento</h2>
           <button onClick={onClose} className="closeButton">
             <FiX size={24} color="#666" />
           </button>
@@ -79,13 +79,13 @@ export default function ModalNovoDocumento({
 
         {/* Input Nome */}
         <div className="inputGroup">
-          <label className="label">Nome do Arquivo</label>
+          <label className="inputLabel">Nome do Arquivo</label>
           <input
             type="text"
             placeholder="Ex: Contrato Social"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            className="input"
+            className="textInput"
           />
         </div>
 
@@ -126,8 +126,8 @@ export default function ModalNovoDocumento({
           )}
         </div>
 
-        {/* Botão Salvar */}
-        <div className="footer">
+        {/* Botão Salvar (Corrigido footer para modalFooter) */}
+        <div className="modalFooter">
           <button onClick={handleSubmit} disabled={loading} className="btnSave">
             {loading ? (
               "Salvando..."

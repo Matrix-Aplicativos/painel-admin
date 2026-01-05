@@ -131,16 +131,20 @@ export default function ParcelasPage() {
           <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
             <Link
               href={`/painel/Clientes/${idCliente}`}
-              style={{ color: "#333", display: "flex", alignItems: "center" }}
+              style={{ color: "#333", display: "flex" }} 
             >
               <FiArrowLeft size={24} />
             </Link>
-            <h1 className={styles.title} style={{ marginBottom: 0 }}>
+
+            <h1
+              className={styles.title}
+              style={{ marginBottom: 0, marginTop: 0, lineHeight: "1" }}
+            >
               {cliente?.razaosocial || "CLIENTE"}
             </h1>
           </div>
           <button className={styles.primaryButton} onClick={handleNovo}>
-            Novo <FiPlus size={18} />
+            Nova Parcela <FiPlus size={18} />
           </button>
         </div>
       </div>
@@ -181,10 +185,7 @@ export default function ParcelasPage() {
                     <td>
                       {new Date(item.datavencimento).toLocaleDateString()}
                     </td>
-
-                    {/* --- AQUI ESTÁ A MUDANÇA --- */}
                     <td>{TIPOS_MAP[item.tipo] || item.tipo}</td>
-
                     <td>
                       <span
                         style={{

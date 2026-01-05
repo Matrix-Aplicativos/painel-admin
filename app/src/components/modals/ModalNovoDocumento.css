@@ -1,4 +1,5 @@
-.overlay {
+/* Container de Fundo (Overlay) */
+.modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -8,11 +9,12 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999; /* Aumentei o z-index para garantir que fique sobre tudo */
   backdrop-filter: blur(2px);
 }
 
-.modal {
+/* O "Corpo" do Modal */
+.modalContent {
   background-color: #fff;
   padding: 30px;
   border-radius: 8px;
@@ -20,6 +22,9 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   animation: fadeIn 0.3s ease-out;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes fadeIn {
@@ -33,14 +38,15 @@
   }
 }
 
-.header {
+/* Header */
+.modalHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
 
-.title {
+.modalTitle {
   font-size: 24px;
   font-weight: 600;
   color: #333;
@@ -52,23 +58,28 @@
   border: none;
   cursor: pointer;
   transition: transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 .closeButton:hover {
   transform: scale(1.1);
 }
 
+/* Inputs */
 .inputGroup {
   margin-bottom: 20px;
 }
 
-.label {
+.inputLabel {
   display: block;
   font-size: 14px;
   color: #999;
   margin-bottom: 5px;
 }
 
-.input {
+.textInput {
   width: 100%;
   padding: 10px;
   font-size: 16px;
@@ -77,13 +88,14 @@
   outline: none;
   color: #333;
   transition: border-color 0.2s;
+  box-sizing: border-box; /* Garante que o padding não estoure a largura */
 }
 
-.input:focus {
+.textInput:focus {
   border-color: #1769e3;
 }
 
-/* Área de Upload */
+/* Área de Upload (Dropzone) */
 .dropzone {
   border: 2px dashed #ddd;
   border-radius: 6px;
@@ -96,6 +108,7 @@
   transition: all 0.2s;
   background-color: #fcfcfc;
   position: relative;
+  margin-bottom: 20px;
 }
 
 .dropzone:hover {
@@ -114,6 +127,7 @@
   background-color: #fff;
 }
 
+/* Ícones e Textos da Dropzone */
 .iconContainer {
   position: relative;
   display: inline-block;
@@ -162,9 +176,11 @@
   margin-top: 5px;
 }
 
-/* Botão Salvar */
-.footer {
-  margin-top: 20px;
+/* Footer do Modal (Corrigido para evitar conflito global) */
+.modalFooter {
+  margin-top: auto; /* Empurra para o fundo se houver espaço extra */
+  display: flex;
+  justify-content: flex-end; /* Alinha o botão à direita, opcional */
 }
 
 .btnSave {
@@ -181,6 +197,7 @@
   min-width: 120px;
   cursor: pointer;
   transition: background-color 0.2s;
+  width: 100%; /* Opcional: Se quiser botão largura total, mantenha. Se não, remova. */
 }
 
 .btnSave:hover {

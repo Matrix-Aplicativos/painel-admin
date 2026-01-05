@@ -12,6 +12,7 @@ import {
   FiX,
   FiEye,
   FiSlash,
+  FiArrowLeft,
 } from "react-icons/fi";
 import styles from "../DetalhesIntegracao.module.css";
 import tableStyles from "@/app/src/components/Tabelas.module.css";
@@ -195,6 +196,26 @@ export default function IntegrationDetailsPage() {
   //Declaração de Funções de renderização
   const renderHeader = () => (
     <div className={styles.header}>
+      <div>
+        <button
+          onClick={() => router.push("/painel/Integracoes")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "#000",
+            fontSize: "14px",
+            padding: "0",
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.color = "#000")}
+          onMouseOut={(e) => (e.currentTarget.style.color = "#000")}
+        >
+          <FiArrowLeft size={24} />
+        </button>
+      </div>
       <h1 className={styles.title}>{integracao?.descricao?.toUpperCase()}</h1>
       <span
         className={`${styles.statusBadge} ${
@@ -336,10 +357,6 @@ export default function IntegrationDetailsPage() {
       </div>
     </div>
   );
-
-  // ... (Resto do código: renderMainActions, renderCompaniesSection e return) ...
-  // Mantive o resto igual pois só alteramos a lógica do botão e a função de toggle.
-
   const renderMainActions = () => (
     <div className={styles.mainActions}>
       {!isEditing ? (
