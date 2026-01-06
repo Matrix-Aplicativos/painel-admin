@@ -39,13 +39,13 @@ export default function FluxoCaixaPage() {
     movimentacoes,
     loading: loadingMov,
     refetch: refetchMov,
-  } = useGetMovimentacoes({}); 
+  } = useGetMovimentacoes({});
 
   const {
     parcelas,
     loading: loadingParc,
     refetch: refetchParc,
-  } = useGetParcelasPagas({}); 
+  } = useGetParcelasPagas({});
 
   const { saveMovimentacao } = usePostMovimentacao();
   const { deleteMovimentacao } = useDeleteMovimentacao();
@@ -142,7 +142,7 @@ export default function FluxoCaixaPage() {
   const loading = loadingMov || loadingParc;
 
   const handleBuscar = () => {
-    setPaginaAtual(1); 
+    setPaginaAtual(1);
     setFiltrosAtivos({
       descricao: inputDescricao,
       categoria: inputCategoria,
@@ -199,8 +199,9 @@ export default function FluxoCaixaPage() {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
-    const dateObj = new Date(dateString);
-    return dateObj.toLocaleDateString("pt-BR");
+    const dataPart = dateString.split("T")[0];
+    const [ano, mes, dia] = dataPart.split("-");
+    return `${dia}/${mes}/${ano}`;
   };
 
   return (

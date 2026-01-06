@@ -258,31 +258,35 @@ export default function UserDetailsPage() {
   };
 
   const handleSaveFuncionario = async (dadosModal: any) => {
-    const empresaFinal = dadosModal.codEmpresa
-      ? Number(dadosModal.codEmpresa)
-      : Number(selectedCompanyId);
+    const idEmpresaVinculo = Number(selectedCompanyId);
 
-    if (!usuario || !empresaFinal) return;
+    const idEmpresaFuncionario = dadosModal.codEmpresa
+      ? Number(dadosModal.codEmpresa)
+      : idEmpresaVinculo;
+
+    const cpfLimpo = dadosModal.cpf ? dadosModal.cpf.replace(/\D/g, "") : "";
+
+    if (!usuario || !idEmpresaVinculo) return;
 
     let cadastroPayload;
 
     if (existingFuncionario) {
       cadastroPayload = {
         codFuncionario: existingFuncionario.codFuncionario,
-        codEmpresa: empresaFinal,
+        codEmpresa: idEmpresaFuncionario,
         codFuncionarioErp: dadosModal.codErp,
         nome: dadosModal.nome,
-        cpf: dadosModal.cpf,
+        cpf: cpfLimpo, 
         email: dadosModal.email,
         ativo: true,
       };
     } else {
       cadastroPayload = {
         codFuncionario: null,
-        codEmpresa: empresaFinal,
+        codEmpresa: idEmpresaFuncionario,
         codFuncionarioErp: dadosModal.codErp,
         nome: dadosModal.nome,
-        cpf: dadosModal.cpf,
+        cpf: cpfLimpo, 
         email: dadosModal.email,
         ativo: true,
       };
@@ -290,7 +294,7 @@ export default function UserDetailsPage() {
 
     const payload = {
       codUsuario: usuario.codUsuario,
-      codEmpresa: empresaFinal,
+      codEmpresa: idEmpresaVinculo,
       ativo: true,
       cadastroFuncionario: cadastroPayload,
     };
@@ -435,7 +439,7 @@ export default function UserDetailsPage() {
                 }}
                 onClick={handleProceedKeep}
               >
-                 Vincular sem editar
+                Vincular sem editar
               </button>
               <button
                 className={styles.btn}
@@ -608,7 +612,7 @@ export default function UserDetailsPage() {
           className={styles.primaryButton}
           onClick={() => setIsRoleModalOpen(true)}
           disabled={isEditing}
-          style={{width: '170px', display: 'flex', justifyContent: 'center'}}
+          style={{ width: "170px", display: "flex", justifyContent: "center" }}
         >
           Novo Cargo <FiPlus size={16} />
         </button>
@@ -640,7 +644,7 @@ export default function UserDetailsPage() {
           className={styles.primaryButton}
           onClick={() => setIsCompanyModalOpen(true)}
           disabled={isEditing || loadingVincular}
-          style={{width: '170px', display: 'flex', justifyContent: 'center'}}
+          style={{ width: "170px", display: "flex", justifyContent: "center" }}
         >
           Vincular Empresa <FiPlus size={16} />
         </button>

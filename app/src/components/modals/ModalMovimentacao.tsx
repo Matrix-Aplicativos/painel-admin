@@ -51,12 +51,26 @@ export default function ModalMovimentacao({
     });
   };
 
+  // Função para pegar a data atual no fuso local no formato YYYY-MM-DD
+  const getHojeLocal = () => {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+    const dia = String(hoje.getDate()).padStart(2, "0");
+    return `${ano}-${mes}-${dia}`;
+  };
+
+  // No arquivo ModalMovimentacao
+
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
         const valorRaw = Number(initialData.valor);
         const isSaida = valorRaw < 0;
         const valorAbs = Math.abs(valorRaw);
+        const dataFormatada = initialData.datapagamento
+          ? initialData.datapagamento.split("T")[0]
+          : "";
 
         setFormData({
           codmovimentacao: initialData.codmovimentacao,
@@ -65,7 +79,7 @@ export default function ModalMovimentacao({
             style: "currency",
             currency: "BRL",
           }),
-          datapagamento: initialData.datapagamento || "",
+          datapagamento: dataFormatada, 
           categoria: initialData.categoria || "",
           subcategoria: initialData.subcategoria || "",
           tipo: isSaida ? "saida" : "entrada",
@@ -74,7 +88,7 @@ export default function ModalMovimentacao({
         setFormData({
           descricao: "",
           valor: "",
-          datapagamento: new Date().toISOString().split("T")[0],
+          datapagamento: getHojeLocal(),
           categoria: "",
           subcategoria: "",
           tipo: "entrada",
@@ -159,7 +173,7 @@ export default function ModalMovimentacao({
             <div className={styles.inputGroup}>
               <label>Data</label>
               <input
-                name="datapagamento" 
+                name="datapagamento"
                 type="date"
                 value={formData.datapagamento}
                 onChange={handleChange}
@@ -173,7 +187,7 @@ export default function ModalMovimentacao({
               <label>Categoria</label>
               <input
                 name="categoria"
-                type="text" 
+                type="text"
                 placeholder="Ex: Receita"
                 value={formData.categoria}
                 onChange={handleChange}
@@ -183,7 +197,7 @@ export default function ModalMovimentacao({
             <div className={styles.inputGroup}>
               <label>Sub Categoria</label>
               <input
-                name="subcategoria" 
+                name="subcategoria"
                 type="text"
                 placeholder="Ex: Energia"
                 value={formData.subcategoria}

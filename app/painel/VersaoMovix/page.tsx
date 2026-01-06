@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { FiPlus, FiSearch } from "react-icons/fi";
+import { FiPlus, FiSearch, FiTrash2 } from "react-icons/fi"; // 1. Importei FiTrash2
 import styles from "@/app/src/components/Tabelas.module.css";
 import PaginationControls from "@/app/src/components/PaginationControls";
 import useGetVersaoMovix from "@/app/src/hooks/VersaoMovix/useGetVersaoMovix";
+import useDeleteVersaoMovix from "@/app/src/hooks/VersaoMovix/useDeleteVersaoMovix"; // 2. Importei o hook
 import ModalVersaoMovix from "@/app/src/components/modals/ModalVersaoMovix";
 
 export default function VersaoMovixPage() {
@@ -17,6 +18,7 @@ export default function VersaoMovixPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
+  // Hook de listagem
   const { versoes, pagination, loading, error, refetch } = useGetVersaoMovix({
     pagina: paginaAtual,
     porPagina: porPagina,
@@ -26,6 +28,9 @@ export default function VersaoMovixPage() {
     direction: "desc",
   });
 
+  // 3. Inicializando o hook de delete
+  const { deleteVersao, loading: loadingDelete } = useDeleteVersaoMovix();
+
   const handleNovo = () => {
     setSelectedId(null);
     setIsModalOpen(true);
@@ -34,6 +39,19 @@ export default function VersaoMovixPage() {
   const handleVerDetalhes = (id: number) => {
     setSelectedId(id);
     setIsModalOpen(true);
+  };
+
+  // 4. Função para lidar com a exclusão
+  const handleDelete = async (id: number) => {
+    if (confirm("Tem certeza que deseja excluir esta versão?")) {
+      const sucesso = await deleteVersao(id);
+      if (sucesso) {
+        // Recarrega a lista após excluir
+        refetch();
+      } else {
+        alert("Não foi possível excluir a versão.");
+      }
+    }
   };
 
   const handleSearch = () => {
@@ -195,6 +213,8 @@ export default function VersaoMovixPage() {
                       style={{
                         display: "flex",
                         justifyContent: "center",
+                        alignItems: "center",
+                        gap: "10px", // Espaçamento entre os botões
                       }}
                     >
                       <button
@@ -202,6 +222,33 @@ export default function VersaoMovixPage() {
                         onClick={() => handleVerDetalhes(item.codVersao)}
                       >
                         Ver detalhes
+                      </button>
+
+                      {/* 5. Botão da Lixeira adicionado aqui */}
+                      <button
+                        onClick={() => handleDelete(item.codVersao)}
+                        disabled={loadingDelete}
+                        title="Excluir versão"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: loadingDelete ? "not-allowed" : "pointer",
+                          color: "#ff4d4d", // Cor vermelha
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "5px",
+                          borderRadius: "4px",
+                          transition: "background 0.2s",
+                        }}
+                        onMouseOver={(e) =>
+                          (e.currentTarget.style.backgroundColor = "#ffe6e6")
+                        }
+                        onMouseOut={(e) =>
+                          (e.currentTarget.style.backgroundColor =
+                            "transparent")
+                        }
+                      >
+                        <FiTrash2 size={20} />
                       </button>
                     </div>
                   </td>
