@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import styles from "@/app/src/components/Tabelas.module.css";
 import { FiEdit, FiTrash2, FiPlus, FiSearch } from "react-icons/fi";
 import ModalMovimentacao from "@/app/src/components/modals/ModalMovimentacao";
@@ -24,32 +24,28 @@ const TIPOS_MAP: Record<string, string> = {
 export default function FluxoCaixaPage() {
   const [viewMode, setViewMode] = useState<"mensal" | "anual">("mensal");
   const [dashboardDate, setDashboardDate] = useState(new Date());
-
   const [inputDescricao, setInputDescricao] = useState("");
   const [inputCategoria, setInputCategoria] = useState("");
-
-  // Filtros apenas de TEXTO para a API. Datas deixamos vazias para pegar TUDO (saldo geral)
-  const [filtros, setFiltros] = useState({
+  const [inputDataInicio, setInputDataInicio] = useState("");
+  const [inputDataFim, setInputDataFim] = useState("");
+  const [filtrosAtivos, setFiltrosAtivos] = useState({
     descricao: "",
     categoria: "",
-    dataInicio: "", // VAZIO: Busca todo o histórico
-    dataFim: "", // VAZIO: Busca todo o histórico
+    dataInicio: "",
+    dataFim: "",
   });
 
-  // Fetch sem filtro de data (Traz tudo)
   const {
     movimentacoes,
     loading: loadingMov,
     refetch: refetchMov,
-  } = useGetMovimentacoes(filtros);
+  } = useGetMovimentacoes({}); 
+
   const {
     parcelas,
     loading: loadingParc,
     refetch: refetchParc,
-  } = useGetParcelasPagas({
-    dataInicio: "", // VAZIO
-    dataFim: "", // VAZIO
-  });
+  } = useGetParcelasPagas({}); 
 
   const { saveMovimentacao } = usePostMovimentacao();
   const { deleteMovimentacao } = useDeleteMovimentacao();
@@ -65,8 +61,7 @@ export default function FluxoCaixaPage() {
     refetchParc();
   };
 
-  // 1. Unifica TODOS os dados (Histórico Completo)
-  const listaCompleta = useMemo(() => {
+  const todosOsDados = useMemo(() => {
     const listaManuais = (movimentacoes || []).map((m) => ({
       ...m,
       tipoOrigem: "MANUAL",
@@ -79,11 +74,13 @@ export default function FluxoCaixaPage() {
       const nomeCliente =
         p.tbcliente?.razaosocial || `Cliente #${p.codcliente}`;
       const tipoTraduzido = TIPOS_MAP[p.tipo] || p.tipo || "Parcela";
+      const dataRef = p.datapagamento || p.datavencimento;
+
       return {
         codmovimentacao: p.codparcela,
         descricao: `${nomeCliente} - Parc. ${p.numparcela}`,
         valor: Number(p.valor),
-        datapagamento: p.datapagamento || p.datavencimento,
+        datapagamento: dataRef,
         categoria: "Receita de Vendas",
         subcategoria: tipoTraduzido,
         tipoOrigem: "PARCELA",
@@ -91,50 +88,53 @@ export default function FluxoCaixaPage() {
       };
     });
 
-    let tudo = [...listaManuais, ...listaParcelas];
-
-    // Filtros de texto manuais
-    if (filtros.descricao) {
-      const termo = filtros.descricao.toLowerCase();
-      tudo = tudo.filter((item) =>
-        (item.descricao || "").toLowerCase().includes(termo)
-      );
-    }
-    if (filtros.categoria) {
-      const termo = filtros.categoria.toLowerCase();
-      tudo = tudo.filter(
-        (item) =>
-          (item.categoria || "").toLowerCase().includes(termo) ||
-          (item.subcategoria || "").toLowerCase().includes(termo)
-      );
-    }
-
-    return tudo.sort((a, b) => {
-      const dateA = a.datapagamento ? new Date(a.datapagamento).getTime() : 0;
-      const dateB = b.datapagamento ? new Date(b.datapagamento).getTime() : 0;
+    return [...listaManuais, ...listaParcelas].sort((a, b) => {
+      const dateA = new Date(a.datapagamento).getTime();
+      const dateB = new Date(b.datapagamento).getTime();
       return dateB - dateA;
     });
-  }, [movimentacoes, parcelas, filtros.descricao, filtros.categoria]);
+  }, [movimentacoes, parcelas]);
 
-  // 2. Filtra a Lista para EXIBIR NA TABELA (Respeitando a data do Dashboard)
-  const dadosTabela = useMemo(() => {
-    return listaCompleta.filter((item) => {
+  const dadosTabelaFiltrados = useMemo(() => {
+    return todosOsDados.filter((item) => {
       if (!item.datapagamento) return false;
-      const d = new Date(item.datapagamento);
+      const matchDescricao =
+        !filtrosAtivos.descricao ||
+        item.descricao
+          .toLowerCase()
+          .includes(filtrosAtivos.descricao.toLowerCase());
 
-      if (viewMode === "mensal") {
-        return (
-          d.getMonth() === dashboardDate.getMonth() &&
-          d.getFullYear() === dashboardDate.getFullYear()
-        );
-      } else {
-        return d.getFullYear() === dashboardDate.getFullYear();
+      const matchCategoria =
+        !filtrosAtivos.categoria ||
+        item.categoria
+          .toLowerCase()
+          .includes(filtrosAtivos.categoria.toLowerCase()) ||
+        (item.subcategoria &&
+          item.subcategoria
+            .toLowerCase()
+            .includes(filtrosAtivos.categoria.toLowerCase()));
+
+      let matchData = true;
+      const dataItem = new Date(item.datapagamento);
+      dataItem.setHours(12, 0, 0, 0);
+
+      if (filtrosAtivos.dataInicio) {
+        const dataInicio = new Date(filtrosAtivos.dataInicio);
+        dataInicio.setHours(0, 0, 0, 0);
+        if (dataItem < dataInicio) matchData = false;
       }
-    });
-  }, [listaCompleta, dashboardDate, viewMode]);
 
-  // Paginação aplicada sobre os dados filtrados por data
-  const dadosPaginados = dadosTabela.slice(
+      if (filtrosAtivos.dataFim) {
+        const dataFim = new Date(filtrosAtivos.dataFim);
+        dataFim.setHours(23, 59, 59, 999);
+        if (dataItem > dataFim) matchData = false;
+      }
+
+      return matchDescricao && matchCategoria && matchData;
+    });
+  }, [todosOsDados, filtrosAtivos]);
+
+  const dadosPaginados = dadosTabelaFiltrados.slice(
     (paginaAtual - 1) * porPagina,
     paginaAtual * porPagina
   );
@@ -142,12 +142,13 @@ export default function FluxoCaixaPage() {
   const loading = loadingMov || loadingParc;
 
   const handleBuscar = () => {
-    setPaginaAtual(1);
-    setFiltros((prev) => ({
-      ...prev,
+    setPaginaAtual(1); 
+    setFiltrosAtivos({
       descricao: inputDescricao,
       categoria: inputCategoria,
-    }));
+      dataInicio: inputDataInicio,
+      dataFim: inputDataFim,
+    });
   };
 
   const handleNovaMovimentacao = () => {
@@ -168,9 +169,7 @@ export default function FluxoCaixaPage() {
 
   const handleExcluir = async (item: any) => {
     if (item.tipoOrigem === "PARCELA") {
-      alert(
-        "Não é possível excluir parcelas automáticas aqui.\nFaça o estorno na tela de Vendas do Cliente."
-      );
+      alert("Não é possível excluir parcelas automáticas aqui.");
       return;
     }
     if (confirm(`Tem certeza que deseja excluir: ${item.descricao}?`)) {
@@ -195,16 +194,13 @@ export default function FluxoCaixaPage() {
     }
   };
 
-  const formatMoney = (val: number) => {
-    if (isNaN(val)) return "R$ 0,00";
-    return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  };
+  const formatMoney = (val: number) =>
+    val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
-    const datePart = dateString.split("T")[0];
-    const [ano, mes, dia] = datePart.split("-");
-    return `${dia}/${mes}/${ano}`;
+    const dateObj = new Date(dateString);
+    return dateObj.toLocaleDateString("pt-BR");
   };
 
   return (
@@ -220,16 +216,14 @@ export default function FluxoCaixaPage() {
         FLUXO DE CAIXA
       </h1>
 
-      {/* DASHBOARD: Recebe a LISTA COMPLETA para calcular saldo geral */}
       <DashboardFluxo
-        transacoes={listaCompleta}
+        transacoes={todosOsDados}
         currentDate={dashboardDate}
         viewMode={viewMode}
         onDateChange={setDashboardDate}
         onViewModeChange={setViewMode}
       />
 
-      {/* FILTROS */}
       <div
         className={styles.searchContainer}
         style={{ flexWrap: "wrap", gap: "15px", alignItems: "flex-end" }}
@@ -252,7 +246,7 @@ export default function FluxoCaixaPage() {
               padding: "8px",
               border: "1px solid #ccc",
               borderRadius: "4px",
-              width: "90%",
+              width: "95%",
               outline: "none",
             }}
           />
@@ -275,7 +269,43 @@ export default function FluxoCaixaPage() {
               padding: "8px",
               border: "1px solid #ccc",
               borderRadius: "4px",
-              width: "90%",
+              width: "95%",
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div className={styles.inputWrapper} style={{ width: "130px" }}>
+          <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
+            Data Início
+          </label>
+          <input
+            type="date"
+            value={inputDataInicio}
+            onChange={(e) => setInputDataInicio(e.target.value)}
+            style={{
+              padding: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              width: "95%",
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div className={styles.inputWrapper} style={{ width: "130px" }}>
+          <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
+            Data Fim
+          </label>
+          <input
+            type="date"
+            value={inputDataFim}
+            onChange={(e) => setInputDataFim(e.target.value)}
+            style={{
+              padding: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              width: "95%",
               outline: "none",
             }}
           />
@@ -322,7 +352,6 @@ export default function FluxoCaixaPage() {
         </div>
       </div>
 
-      {/* TABELA: Exibe DADOS PAGINADOS (Que já foram filtrados pela data acima) */}
       <div className={styles.tableContainer}>
         <div className={styles.tableScroll}>
           <table className={styles.table}>
@@ -354,7 +383,7 @@ export default function FluxoCaixaPage() {
                       color: "#999",
                     }}
                   >
-                    Nenhum registro encontrado neste período.
+                    Nenhum registro encontrado com estes filtros.
                   </td>
                 </tr>
               )}
@@ -396,12 +425,6 @@ export default function FluxoCaixaPage() {
                             item.tipoOrigem === "PARCELA" ? "#ccc" : "#f39c12"
                           }
                           size={18}
-                          style={{
-                            cursor:
-                              item.tipoOrigem === "PARCELA"
-                                ? "not-allowed"
-                                : "pointer",
-                          }}
                           onClick={() => handleEditarMovimentacao(item)}
                         />
                         <FiTrash2
@@ -414,12 +437,6 @@ export default function FluxoCaixaPage() {
                             item.tipoOrigem === "PARCELA" ? "#ccc" : "#e74c3c"
                           }
                           size={18}
-                          style={{
-                            cursor:
-                              item.tipoOrigem === "PARCELA"
-                                ? "not-allowed"
-                                : "pointer",
-                          }}
                           onClick={() => handleExcluir(item)}
                         />
                       </div>
@@ -431,8 +448,8 @@ export default function FluxoCaixaPage() {
         </div>
         <PaginationControls
           paginaAtual={paginaAtual}
-          totalPaginas={Math.ceil(dadosTabela.length / porPagina) || 1}
-          totalElementos={dadosTabela.length}
+          totalPaginas={Math.ceil(dadosTabelaFiltrados.length / porPagina) || 1}
+          totalElementos={dadosTabelaFiltrados.length}
           porPagina={porPagina}
           onPageChange={setPaginaAtual}
           onItemsPerPageChange={setPorPagina}
