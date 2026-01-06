@@ -435,7 +435,7 @@ export default function UserDetailsPage() {
                 }}
                 onClick={handleProceedKeep}
               >
-                Vincular Atual
+                 Vincular sem editar
               </button>
               <button
                 className={styles.btn}
