@@ -2,7 +2,9 @@ import { useState, useCallback } from "react";
 import axiosInstance from "../axiosInstance";
 
 export interface IntegracaoUsuario {
-  nomeUsuario: string;
+  nomeUsuario: string; 
+  login?: string;
+  nome?: string; 
   senha?: string;
 }
 

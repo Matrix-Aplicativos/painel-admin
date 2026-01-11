@@ -1,475 +1,565 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import styles from "@/app/src/components/Tabelas.module.css";
-import { FiEdit, FiTrash2, FiPlus, FiSearch } from "react-icons/fi";
-import ModalMovimentacao from "@/app/src/components/modals/ModalMovimentacao";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  FiEdit2,
+  FiTrash2,
+  FiCheck,
+  FiSearch,
+  FiPlus,
+  FiAlertCircle,
+  FiX,
+  FiEye,
+  FiSlash,
+  FiArrowLeft,
+} from "react-icons/fi";
+import styles from "../DetalhesIntegracao.module.css";
+import tableStyles from "@/app/src/components/Tabelas.module.css";
 import PaginationControls from "@/app/src/components/PaginationControls";
-import DashboardFluxo from "@/app/src/components/GraficoFluxo";
+import ModalNovaEmpresa from "@/app/src/components/modals/ModalNovaEmpresa";
+import useGetIntegracaoById from "@/app/src/hooks/Integracao/useGetIntegracaoById";
+import useGetEmpresa from "@/app/src/hooks/Empresa/useGetEmpresa";
+import useDeleteIntegracao from "@/app/src/hooks/Integracao/useDeleteIntegracao";
+import usePostIntegracao, {
+  IntegracaoPayload,
+} from "@/app/src/hooks/Integracao/usePostIntegracao";
 
-import usePostMovimentacao, {
-  MovimentacaoPayload,
-} from "@/app/src/hooks/Financeiro/usePostMovimentacao";
-import useDeleteMovimentacao from "@/app/src/hooks/Financeiro/useDeleteMovimentacao";
-import useGetMovimentacoes from "@/app/src/hooks/Financeiro/useGetMovimentacao";
-import useGetParcelasPagas from "@/app/src/hooks/Financeiro/useGetParcelasPagas";
-
-const TIPOS_MAP: Record<string, string> = {
-  A: "Ativação",
-  M: "Manutenção",
-  S: "Serviço",
-  O: "Outros",
-};
-
-export default function FluxoCaixaPage() {
-  const [viewMode, setViewMode] = useState<"mensal" | "anual">("mensal");
-  const [dashboardDate, setDashboardDate] = useState(new Date());
-  const [inputDescricao, setInputDescricao] = useState("");
-  const [inputCategoria, setInputCategoria] = useState("");
-  const [inputDataInicio, setInputDataInicio] = useState("");
-  const [inputDataFim, setInputDataFim] = useState("");
-  const [filtrosAtivos, setFiltrosAtivos] = useState({
-    descricao: "",
-    categoria: "",
-    dataInicio: "",
-    dataFim: "",
-  });
-
-  const {
-    movimentacoes,
-    loading: loadingMov,
-    refetch: refetchMov,
-  } = useGetMovimentacoes({});
-
-  const {
-    parcelas,
-    loading: loadingParc,
-    refetch: refetchParc,
-  } = useGetParcelasPagas({});
-
-  const { saveMovimentacao } = usePostMovimentacao();
-  const { deleteMovimentacao } = useDeleteMovimentacao();
+export default function IntegrationDetailsPage() {
+  const params = useParams();
+  const router = useRouter();
+  const idIntegracao = Number(params.id);
 
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [porPagina, setPorPagina] = useState(20);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [movimentacaoSelecionada, setMovimentacaoSelecionada] =
-    useState<any>(null);
+  const [isNewCompanyModalOpen, setIsNewCompanyModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleRefetchAll = () => {
-    refetchMov();
-    refetchParc();
+  const [formDataIntegracao, setFormDataIntegracao] = useState({
+    descricao: "",
+    cnpj: "",
+    maxEmpresas: 0,
+    login: "",
+    senha: "",
+    nome: "",
+  });
+
+  const [filtroRazao, setFiltroRazao] = useState("");
+  const [filtroCnpj, setFiltroCnpj] = useState("");
+  const [filtroCidade, setFiltroCidade] = useState("");
+  const [queryRazao, setQueryRazao] = useState("");
+  const [queryCnpj, setQueryCnpj] = useState("");
+  const [queryCidade, setQueryCidade] = useState("");
+
+  const {
+    integracao,
+    loading: loadingIntegracao,
+    error: errorIntegracao,
+    refetch: refetchIntegracao,
+  } = useGetIntegracaoById(idIntegracao);
+
+  const { deleteIntegracao, loading: loadingDelete } = useDeleteIntegracao();
+  const { createIntegracao, loading: loadingSave } = usePostIntegracao();
+
+  const {
+    empresas,
+    pagination,
+    loading: loadingEmpresas,
+    refetch: refetchEmpresas,
+  } = useGetEmpresa({
+    codIntegracao: idIntegracao,
+    pagina: paginaAtual,
+    porPagina: porPagina,
+    razaoSocial: queryRazao,
+    cnpj: queryCnpj,
+    cidade: queryCidade,
+  });
+
+  useEffect(() => {
+    if (integracao) {
+      setFormDataIntegracao({
+        descricao: integracao.descricao || "",
+        cnpj: integracao.responsavel?.login || "",
+        maxEmpresas: integracao.maxEmpresas || 0,
+        login: integracao.responsavel?.login || "",
+        senha: "",
+        nome: integracao.responsavel?.nome || "",
+      });
+    }
+  }, [integracao]);
+
+  const handleBuscarEmpresas = () => {
+    setPaginaAtual(1);
+    setQueryRazao(filtroRazao);
+    setQueryCnpj(filtroCnpj);
+    setQueryCidade(filtroCidade);
+    setTimeout(() => refetchEmpresas(), 0);
   };
 
-  // Função para limpar a data e garantir YYYY-MM-DD
-  const getRawDateString = (dateVal: string | undefined) => {
-    if (!dateVal) return "";
-    // Pega apenas os 10 primeiros caracteres: "2026-01-14T..." vira "2026-01-14"
-    return dateVal.toString().substring(0, 10);
+  const handleEditar = () => {
+    setIsEditing(true);
   };
 
-  const todosOsDados = useMemo(() => {
-    const listaManuais = (movimentacoes || []).map((m) => ({
-      ...m,
-      tipoOrigem: "MANUAL",
-      idUnico: `mov-${m.codmovimentacao}`,
-      valor: Number(m.valor),
-      // Normaliza para string pura YYYY-MM-DD
-      datapagamento: getRawDateString(m.datapagamento),
-    }));
+  const handleCancelarEdicao = () => {
+    setIsEditing(false);
+    setShowPassword(false);
+    if (integracao) {
+      setFormDataIntegracao({
+        descricao: integracao.descricao || "",
+        cnpj: integracao.responsavel?.login || "",
+        maxEmpresas: integracao.maxEmpresas || 0,
+        login: integracao.responsavel?.login || "",
+        senha: "",
+        nome: integracao.responsavel?.nome || "",
+      });
+    }
+  };
 
-    const listaParcelas = (parcelas || []).map((p) => {
-      const nomeCliente =
-        p.tbcliente?.razaosocial || `Cliente #${p.codcliente}`;
-      const tipoTraduzido = TIPOS_MAP[p.tipo] || p.tipo || "Parcela";
-      // Normaliza data de pagamento ou vencimento
-      const dataRef = getRawDateString(p.datapagamento || p.datavencimento);
+  const handleSalvarEdicao = async () => {
+    const payload: IntegracaoPayload = {
+      codIntegracao: idIntegracao,
+      descricao: formDataIntegracao.descricao,
+      cnpj: formDataIntegracao.cnpj,
+      maxEmpresas: formDataIntegracao.maxEmpresas,
+      usuario: {
+        // CORREÇÃO AQUI:
+        // 'nome' recebe o Nome Real (evita que o backend sobrescreva com o login)
+        // 'nomeUsuario' recebe o Login/CPF (para garantir que o login seja salvo)
+        nome: formDataIntegracao.nome,
+        nomeUsuario: formDataIntegracao.login,
+        login: formDataIntegracao.login, // Enviamos também como 'login' por garantia
+        senha: formDataIntegracao.senha || undefined,
+      },
+      ativo: integracao?.ativo ?? true,
+    };
 
-      return {
-        codmovimentacao: p.codparcela,
-        descricao: `${nomeCliente} - Parc. ${p.numparcela}`,
-        valor: Number(p.valor),
-        datapagamento: dataRef,
-        categoria: "Receita de Vendas",
-        subcategoria: tipoTraduzido,
-        tipoOrigem: "PARCELA",
-        idUnico: `parc-${p.codparcela}`,
+    const sucesso = await createIntegracao(payload);
+
+    if (sucesso) {
+      alert("Integração salva com sucesso!");
+      setIsEditing(false);
+      refetchIntegracao();
+    }
+  };
+
+  const handleToggleAtivo = async () => {
+    if (!integracao) return;
+
+    const novoStatus = !integracao.ativo;
+    const acao = novoStatus ? "ativar" : "desativar";
+
+    const confirmacao = window.confirm(
+      `Deseja realmente ${acao} esta integração?`
+    );
+
+    if (confirmacao) {
+      const payload: IntegracaoPayload = {
+        codIntegracao: idIntegracao,
+        descricao: integracao.descricao,
+        cnpj: integracao.responsavel?.login || "",
+        maxEmpresas: integracao.maxEmpresas,
+        usuario: {
+          nome: integracao.responsavel?.nome,
+          nomeUsuario: integracao.responsavel?.login,
+          login: integracao.responsavel?.login,
+        },
+        ativo: novoStatus,
       };
-    });
 
-    // Ordenação segura por string (YYYY-MM-DD funciona perfeitamente com sort alfabético)
-    return [...listaManuais, ...listaParcelas].sort((a, b) => {
-      if (!a.datapagamento || !b.datapagamento) return 0;
-      return b.datapagamento.localeCompare(a.datapagamento);
-    });
-  }, [movimentacoes, parcelas]);
+      const sucesso = await createIntegracao(payload);
 
-  const dadosTabelaFiltrados = useMemo(() => {
-    return todosOsDados.filter((item) => {
-      if (!item.datapagamento) return false;
-      const matchDescricao =
-        !filtrosAtivos.descricao ||
-        item.descricao
-          .toLowerCase()
-          .includes(filtrosAtivos.descricao.toLowerCase());
-
-      const matchCategoria =
-        !filtrosAtivos.categoria ||
-        item.categoria
-          .toLowerCase()
-          .includes(filtrosAtivos.categoria.toLowerCase()) ||
-        (item.subcategoria &&
-          item.subcategoria
-            .toLowerCase()
-            .includes(filtrosAtivos.categoria.toLowerCase()));
-
-      let matchData = true;
-
-      // Adicionamos T12:00:00 para criar o objeto Date no MEIO do dia.
-      // Isso evita que o fuso horário empurre para o dia anterior ou seguinte na comparação.
-      const dataItem = new Date(item.datapagamento + "T12:00:00");
-
-      if (filtrosAtivos.dataInicio) {
-        const dataInicio = new Date(filtrosAtivos.dataInicio + "T00:00:00");
-        if (dataItem < dataInicio) matchData = false;
+      if (sucesso) {
+        refetchIntegracao();
       }
+    }
+  };
 
-      if (filtrosAtivos.dataFim) {
-        const dataFim = new Date(filtrosAtivos.dataFim + "T23:59:59");
-        if (dataItem > dataFim) matchData = false;
+  const handleExcluir = async () => {
+    const confirmacao = window.confirm(
+      "Deseja realmente excluir esta integração? Todas as empresas vinculadas podem ser afetadas."
+    );
+
+    if (confirmacao) {
+      const sucesso = await deleteIntegracao(idIntegracao);
+      if (sucesso) {
+        alert("Integração excluída com sucesso!");
+        router.push("/painel/Integracoes");
       }
+    }
+  };
 
-      return matchDescricao && matchCategoria && matchData;
-    });
-  }, [todosOsDados, filtrosAtivos]);
+  const handleVerDetalhesEmpresa = (empresaId: number) => {
+    router.push(`/painel/Integracoes/${idIntegracao}/Empresa/${empresaId}`);
+  };
 
-  const dadosPaginados = dadosTabelaFiltrados.slice(
-    (paginaAtual - 1) * porPagina,
-    paginaAtual * porPagina
+  const handleNovaEmpresa = () => setIsNewCompanyModalOpen(true);
+  const handleEmpresaSalvaComSucesso = () => refetchEmpresas();
+
+  const renderHeader = () => (
+    <div className={styles.header}>
+      <div>
+        <button
+          onClick={() => router.push("/painel/Integracoes")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            color: "#000",
+            fontSize: "14px",
+            padding: "0",
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.color = "#000")}
+          onMouseOut={(e) => (e.currentTarget.style.color = "#000")}
+        >
+          <FiArrowLeft size={24} />
+        </button>
+      </div>
+      <h1 className={styles.title}>{integracao?.descricao?.toUpperCase()}</h1>
+      <span
+        className={`${styles.statusBadge} ${
+          integracao?.ativo ? styles.statusCompleted : styles.statusPending
+        }`}
+        style={{
+          backgroundColor: integracao?.ativo ? "#e6fffa" : "#fff5f5",
+          color: integracao?.ativo ? "#2c7a7b" : "#c53030",
+        }}
+      >
+        {integracao?.ativo ? "ATIVO" : "INATIVO"}
+      </span>
+    </div>
   );
 
-  const loading = loadingMov || loadingParc;
-
-  const handleBuscar = () => {
-    setPaginaAtual(1);
-    setFiltrosAtivos({
-      descricao: inputDescricao,
-      categoria: inputCategoria,
-      dataInicio: inputDataInicio,
-      dataFim: inputDataFim,
-    });
-  };
-
-  const handleNovaMovimentacao = () => {
-    setMovimentacaoSelecionada(null);
-    setIsModalOpen(true);
-  };
-
-  const handleEditarMovimentacao = (item: any) => {
-    if (item.tipoOrigem === "PARCELA") {
-      alert(
-        `O recebimento "${item.descricao}" é automático.\nPara alterar, vá até o cadastro do Cliente > Vendas.`
-      );
-      return;
-    }
-    setMovimentacaoSelecionada(item);
-    setIsModalOpen(true);
-  };
-
-  const handleExcluir = async (item: any) => {
-    if (item.tipoOrigem === "PARCELA") {
-      alert("Não é possível excluir parcelas automáticas aqui.");
-      return;
-    }
-    if (confirm(`Tem certeza que deseja excluir: ${item.descricao}?`)) {
-      if (await deleteMovimentacao(item.codmovimentacao)) {
-        handleRefetchAll();
-      }
-    }
-  };
-
-  const handleSalvar = async (dadosModal: any) => {
-    const payload: MovimentacaoPayload = {
-      codmovimentacao: movimentacaoSelecionada?.codmovimentacao || null,
-      descricao: dadosModal.descricao,
-      categoria: dadosModal.categoria,
-      subcategoria: dadosModal.subcategoria,
-      valor: Number(dadosModal.valor),
-      datapagamento: dadosModal.datapagamento,
-    };
-    if (await saveMovimentacao(payload)) {
-      setIsModalOpen(false);
-      handleRefetchAll();
-    }
-  };
-
-  const formatMoney = (val: number) =>
-    val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "-";
-    const str = String(dateString);
-    const dataLimpa = str.split("T")[0];
-    const partes = dataLimpa.split("-");
-    if (partes.length !== 3) return dataLimpa;
-
-    const [ano, mes, dia] = partes;
-
-    return `${dia}/${mes}/${ano}`;
-  };
-
-  return (
-    <div className={styles.container}>
-      <ModalMovimentacao
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSalvar}
-        initialData={movimentacaoSelecionada}
-      />
-
-      <h1 className={styles.title} style={{ marginBottom: "20px" }}>
-        FLUXO DE CAIXA
-      </h1>
-
-      <DashboardFluxo
-        transacoes={todosOsDados}
-        currentDate={dashboardDate}
-        viewMode={viewMode}
-        onDateChange={setDashboardDate}
-        onViewModeChange={setViewMode}
-      />
-
-      <div
-        className={styles.searchContainer}
-        style={{ flexWrap: "wrap", gap: "15px", alignItems: "flex-end" }}
-      >
-        <div
-          className={styles.inputWrapper}
-          style={{ flex: 2, minWidth: "200px" }}
-        >
-          <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
-            Descrição / Cliente
-          </label>
+  const renderDadosCadastro = () => (
+    <div>
+      <div className={styles.sectionTitle}>Dados de Cadastro</div>
+      <div className={styles.formGroup}>
+        <div className={styles.inputWrapper}>
+          <label>Descrição</label>
           <input
             type="text"
-            placeholder="Buscar..."
-            value={inputDescricao}
-            onChange={(e) => setInputDescricao(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
-            className={styles.inputField}
-            style={{
-              padding: "8px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              width: "95%",
-              outline: "none",
-            }}
+            value={formDataIntegracao.descricao}
+            disabled={!isEditing}
+            onChange={(e) =>
+              setFormDataIntegracao({
+                ...formDataIntegracao,
+                descricao: e.target.value,
+              })
+            }
           />
         </div>
 
-        <div
-          className={styles.inputWrapper}
-          style={{ flex: 1, minWidth: "150px" }}
-        >
-          <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
-            Categoria
-          </label>
-          <input
-            type="text"
-            placeholder="Ex: Receita..."
-            value={inputCategoria}
-            onChange={(e) => setInputCategoria(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
-            style={{
-              padding: "8px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              width: "95%",
-              outline: "none",
-            }}
-          />
-        </div>
+        <div className={styles.inputRow}>
+          <div className={styles.inputWrapper}>
+            <label>CNPJ</label>
+            <input
+              type="text"
+              value={formDataIntegracao.cnpj}
+              disabled={!isEditing}
+              onChange={(e) =>
+                setFormDataIntegracao({
+                  ...formDataIntegracao,
+                  cnpj: e.target.value,
+                })
+              }
+            />
+          </div>
 
-        <div className={styles.inputWrapper} style={{ width: "130px" }}>
-          <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
-            Data Início
-          </label>
-          <input
-            type="date"
-            value={inputDataInicio}
-            onChange={(e) => setInputDataInicio(e.target.value)}
-            style={{
-              padding: "8px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              width: "95%",
-              outline: "none",
-            }}
-          />
-        </div>
-
-        <div className={styles.inputWrapper} style={{ width: "130px" }}>
-          <label style={{ fontSize: "12px", fontWeight: 600, color: "#666" }}>
-            Data Fim
-          </label>
-          <input
-            type="date"
-            value={inputDataFim}
-            onChange={(e) => setInputDataFim(e.target.value)}
-            style={{
-              padding: "8px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              width: "95%",
-              outline: "none",
-            }}
-          />
-        </div>
-
-        <div style={{ display: "flex", alignItems: "flex-end" }}>
-          <button
-            onClick={handleBuscar}
-            style={{
-              backgroundColor: "#1769e3",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              height: "35px",
-              padding: "0 15px",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Buscar <FiSearch />
-          </button>
-        </div>
-
-        <div className={styles.searchActions} style={{ marginLeft: "auto" }}>
-          <button
-            onClick={handleNovaMovimentacao}
-            style={{
-              height: "35px",
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              backgroundColor: "#2ecc71",
-              color: "#000",
-              border: "none",
-              borderRadius: "4px",
-              padding: "0 15px",
-              cursor: "pointer",
-            }}
-          >
-            Nova Movimentação <FiPlus size={18} />
-          </button>
+          <div className={styles.inputWrapper} style={{ maxWidth: "150px" }}>
+            <label>Max. Empresas</label>
+            <input
+              type="number"
+              value={formDataIntegracao.maxEmpresas}
+              disabled={!isEditing}
+              onChange={(e) =>
+                setFormDataIntegracao({
+                  ...formDataIntegracao,
+                  maxEmpresas: Number(e.target.value),
+                })
+              }
+            />
+          </div>
         </div>
       </div>
+    </div>
+  );
 
-      <div className={styles.tableContainer}>
-        <div className={styles.tableScroll}>
-          <table className={styles.table}>
+  const renderUsuarioResponsavel = () => (
+    <div>
+      <div className={styles.sectionTitle}>Usuário Responsável</div>
+      <div className={styles.formGroup}>
+        <div className={styles.inputWrapper}>
+          <label>Nome</label>
+          <input
+            type="text"
+            value={formDataIntegracao.nome}
+            disabled
+            style={{ backgroundColor: "#f9f9f9" }}
+          />
+        </div>
+
+        {isEditing && (
+          <div className={styles.inputWrapper}>
+            <label>Nova Senha (Opcional)</label>
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Deixe em branco para manter"
+                value={formDataIntegracao.senha}
+                onChange={(e) =>
+                  setFormDataIntegracao({
+                    ...formDataIntegracao,
+                    senha: e.target.value,
+                  })
+                }
+                style={{ width: "95%" }}
+              />
+              <div
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  cursor: "pointer",
+                  color: "#666",
+                }}
+              >
+                {showPassword ? <FiSlash /> : <FiEye />}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isEditing && (
+          <div className={styles.userActions}>
+            <button
+              className={`${styles.btn} ${styles.btnBlue}`}
+              disabled={loadingDelete}
+              onClick={() => setIsEditing(true)}
+            >
+              Alterar Senha <FiEdit2 />
+            </button>
+
+            <button
+              className={`${styles.btn} ${
+                integracao?.ativo ? styles.btnRed : styles.btnGreen
+              }`}
+              disabled={loadingDelete || loadingSave}
+              onClick={handleToggleAtivo}
+            >
+              {integracao?.ativo ? "Desativar" : "Ativar"} <FiAlertCircle />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderMainActions = () => (
+    <div className={styles.mainActions}>
+      {!isEditing ? (
+        <div className={styles.actionRow}>
+          <button
+            className={`${styles.btn} ${styles.btnBlue}`}
+            onClick={handleEditar}
+            disabled={loadingDelete}
+          >
+            Editar <FiEdit2 />
+          </button>
+          <button
+            className={`${styles.btn} ${styles.btnRed}`}
+            onClick={handleExcluir}
+            disabled={loadingDelete}
+          >
+            {loadingDelete ? "Excluindo..." : "Excluir"} <FiTrash2 />
+          </button>
+        </div>
+      ) : (
+        <div className={styles.actionRow}>
+          <button
+            className={`${styles.btn} ${styles.btnGreen}`}
+            onClick={handleSalvarEdicao}
+            disabled={loadingSave}
+          >
+            {loadingSave ? "Salvando..." : "Salvar"} <FiCheck />
+          </button>
+          <button
+            className={`${styles.btn} ${styles.btnRed}`}
+            onClick={handleCancelarEdicao}
+            disabled={loadingSave}
+          >
+            Voltar <FiX />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderCompaniesSection = () => (
+    <div className={styles.companiesSection}>
+      <div className={styles.sectionTitle}>Empresas Vinculadas</div>
+
+      <div className={styles.filtersRow}>
+        <div className={styles.inputWrapper}>
+          <label>Razão Social</label>
+          <input
+            type="text"
+            placeholder="Buscar por Razão"
+            value={filtroRazao}
+            onChange={(e) => setFiltroRazao(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleBuscarEmpresas()}
+          />
+        </div>
+        <div className={styles.inputWrapper}>
+          <label>CNPJ</label>
+          <input
+            type="text"
+            placeholder="Buscar por CNPJ"
+            value={filtroCnpj}
+            onChange={(e) => setFiltroCnpj(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleBuscarEmpresas()}
+          />
+        </div>
+        <div className={styles.inputWrapper}>
+          <label>Cidade</label>
+          <input
+            type="text"
+            placeholder="Buscar por Cidade"
+            value={filtroCidade}
+            onChange={(e) => setFiltroCidade(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleBuscarEmpresas()}
+          />
+        </div>
+
+        <button
+          className={`${styles.btn} ${styles.btnBlue}`}
+          style={{ marginLeft: "10px" }}
+          onClick={handleBuscarEmpresas}
+        >
+          Buscar <FiSearch />
+        </button>
+        <button
+          className={tableStyles.primaryButton}
+          onClick={handleNovaEmpresa}
+        >
+          Novo <FiPlus size={18} />
+        </button>
+      </div>
+
+      <div
+        className={styles.innerTableContainer}
+        style={{ display: "flex", flexDirection: "column" }}
+      >
+        <div style={{ overflowX: "auto", width: "100%", flexGrow: 1 }}>
+          <table className={tableStyles.table}>
             <thead>
               <tr>
-                <th>Descrição</th>
-                <th>Valor</th>
-                <th>Data Pagamento</th>
-                <th>Categoria</th>
-                <th>Sub Categoria</th>
-                <th className={styles.actionsCell}>Ações</th>
+                <th>Razão Social</th>
+                <th>CNPJ</th>
+                <th>Cidade</th>
+                <th>Bairro</th>
+                <th>Status</th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {loading && (
+              {loadingEmpresas && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: 20 }}>
-                    Carregando dados...
+                  <td colSpan={6} style={{ textAlign: "center" }}>
+                    Carregando empresas...
                   </td>
                 </tr>
               )}
-              {!loading && dadosPaginados.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    style={{
-                      textAlign: "center",
-                      padding: "20px",
-                      color: "#999",
-                    }}
-                  >
-                    Nenhum registro encontrado com estes filtros.
-                  </td>
-                </tr>
-              )}
-              {!loading &&
-                dadosPaginados.map((item) => (
-                  <tr key={item.idUnico}>
-                    <td
-                      style={{
-                        fontWeight: item.tipoOrigem === "PARCELA" ? 500 : 400,
-                      }}
-                    >
-                      {item.descricao}
+              {!loadingEmpresas &&
+                empresas.map((emp) => (
+                  <tr key={emp.codEmpresa}>
+                    <td>{emp.razaoSocial}</td>
+                    <td>{emp.cnpj}</td>
+                    <td>
+                      {emp.municipio?.nome} - {emp.municipio?.uf}
                     </td>
-                    <td
-                      className={
-                        item.valor >= 0 ? styles.textGreen : styles.textRed
-                      }
-                    >
-                      {formatMoney(item.valor)}
-                    </td>
-                    <td>{formatDate(item.datapagamento)}</td>
-                    <td>{item.categoria}</td>
-                    <td>{item.subcategoria}</td>
-                    <td className={styles.actionsCell}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "center",
-                          gap: "8px",
-                        }}
+                    <td>{emp.bairro}</td>
+                    <td>
+                      <span
+                        className={`${tableStyles.statusBadge} ${
+                          emp.ativo
+                            ? tableStyles.statusCompleted
+                            : tableStyles.statusNotStarted
+                        }`}
                       >
-                        <FiEdit
-                          className={
-                            item.tipoOrigem === "PARCELA"
-                              ? styles.disabledIcon
-                              : styles.actionIcon
-                          }
-                          color={
-                            item.tipoOrigem === "PARCELA" ? "#ccc" : "#f39c12"
-                          }
-                          size={18}
-                          onClick={() => handleEditarMovimentacao(item)}
-                        />
-                        <FiTrash2
-                          className={
-                            item.tipoOrigem === "PARCELA"
-                              ? styles.disabledIcon
-                              : styles.actionIcon
-                          }
-                          color={
-                            item.tipoOrigem === "PARCELA" ? "#ccc" : "#e74c3c"
-                          }
-                          size={18}
-                          onClick={() => handleExcluir(item)}
-                        />
-                      </div>
+                        {emp.ativo ? "ATIVO" : "INATIVO"}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        className={tableStyles.btnDetails}
+                        onClick={() => handleVerDetalhesEmpresa(emp.codEmpresa)}
+                      >
+                        Ver detalhes
+                      </button>
                     </td>
                   </tr>
                 ))}
+              {!loadingEmpresas && empresas.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: "center" }}>
+                    Nenhuma empresa encontrada.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-        <PaginationControls
-          paginaAtual={paginaAtual}
-          totalPaginas={Math.ceil(dadosTabelaFiltrados.length / porPagina) || 1}
-          totalElementos={dadosTabelaFiltrados.length}
-          porPagina={porPagina}
-          onPageChange={setPaginaAtual}
-          onItemsPerPageChange={setPorPagina}
-        />
+        {pagination && (
+          <PaginationControls
+            paginaAtual={pagination.paginaAtual}
+            totalPaginas={pagination.qtdPaginas}
+            totalElementos={pagination.qtdElementos}
+            porPagina={porPagina}
+            onPageChange={setPaginaAtual}
+            onItemsPerPageChange={setPorPagina}
+          />
+        )}
       </div>
+    </div>
+  );
+
+  if (loadingIntegracao)
+    return (
+      <div className={styles.container}>
+        <p>Carregando detalhes...</p>
+      </div>
+    );
+
+  if (errorIntegracao || !integracao)
+    return (
+      <div className={styles.container}>
+        <p>Erro ao carregar integração.</p>
+      </div>
+    );
+
+  return (
+    <div className={styles.container}>
+      <ModalNovaEmpresa
+        isOpen={isNewCompanyModalOpen}
+        onClose={() => setIsNewCompanyModalOpen(false)}
+        codIntegracao={idIntegracao}
+        onSuccess={handleEmpresaSalvaComSucesso}
+      />
+
+      {renderHeader()}
+
+      <div className={styles.topGrid}>
+        {renderDadosCadastro()}
+        {renderUsuarioResponsavel()}
+      </div>
+
+      {renderMainActions()}
+      {renderCompaniesSection()}
     </div>
   );
 }
