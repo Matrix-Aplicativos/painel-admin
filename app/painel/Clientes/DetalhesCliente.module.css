@@ -1,0 +1,254 @@
+.container {
+  width: 100%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 10px;
+}
+.breadcrumb a {
+  color: #1769e3;
+  text-decoration: none;
+}
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+/* Cabeçalho */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #333;
+  text-transform: uppercase;
+}
+.statusBadge {
+  background-color: #dcfce7;
+  color: #166534;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* Layout Principal (Grid) */
+.mainGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr; /* 2 partes formulário, 1 parte lateral */
+  gap: 30px;
+}
+
+/* Seção do Formulário */
+.formSection {
+  background-color: white; /* ou var(--modal-bg-color) */
+}
+
+.sectionTitle {
+  font-size: 18px;
+  color: #444;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.formRow {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.inputGroup {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.inputGroup label {
+  font-size: 14px;
+  color: #666;
+}
+
+.inputGroup input,
+.inputGroup select,
+.inputGroup textarea {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  background-color: #fff;
+}
+.inputGroup textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+.inputGroup input:focus,
+.inputGroup select:focus,
+.inputGroup textarea:focus {
+  border-color: #1769e3;
+}
+
+/* Contatos */
+.contactHeader {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+  margin-bottom: 15px;
+}
+.btnNewContact {
+  background-color: #00e676; /* Verde Claro brilhante */
+  color: #fff;
+  border: none;
+  padding: 6px 15px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.contactList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.contactItem {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  font-size: 14px;
+}
+.contactLink {
+  color: #1769e3;
+  text-decoration: none;
+}
+
+/* Lateral (Botões e Pagamentos) */
+.sidebarSection {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.actionButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.buttonRow {
+  display: flex;
+  gap: 10px;
+}
+
+.btnAction {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+.btnAction:hover {
+  opacity: 0.9;
+}
+
+.btnEdit {
+  background-color: #1769e3;
+}
+.btnDelete {
+  background-color: #d32f2f;
+}
+.btnSave {
+  background-color: #17e381;
+  color: black;
+}
+.btnCancel {
+  background-color: #d32f2f;
+}
+
+.primaryButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: #17e381;
+  border: 1px solid #17e381;
+  border-radius: 6px;
+  cursor: pointer;
+  color: black;
+  font-weight: 400;
+  transition: all 0.2s;
+}
+
+/* Pagamentos */
+.paymentSection h3 {
+  font-size: 16px;
+  color: #444;
+  margin-bottom: 10px;
+}
+.paymentList {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 15px;
+}
+.paymentRow {
+  display: grid;
+  /* Alterado para 3 colunas para alinhar: Vencimento | Valor | Tipo */
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  gap: 10px;
+  align-items: center;
+}
+
+.paymentHeader {
+  font-weight: bold;
+  color: #888;
+  margin-bottom: 5px;
+  
+}
+
+.btnViewParcels {
+  background-color: #1769e3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px;
+  width: 100%;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Responsividade */
+@media (max-width: 900px) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+  }
+  .formRow {
+    flex-direction: column;
+    gap: 10px;
+  }
+}

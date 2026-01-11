@@ -1,0 +1,229 @@
+.container {
+  width: 100%;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 5px;
+}
+.titleArea {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.statusBadge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+.statusActive {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+.statusInactive {
+  background-color: #ffebee;
+  color: #d7072c;
+}
+
+.headerButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.buttonRow {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-weight: 400;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: white;
+  white-space: nowrap;
+  min-width: 90px;
+  transition: opacity 0.2s;
+}
+.btn:hover {
+  opacity: 0.9;
+}
+.btnBlue {
+  background-color: #1769e3;
+}
+.btnRed {
+  background-color: #d32f2f;
+}
+.btnGreen {
+  background-color: #17e381;
+  color: black;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: bold;
+  color: #444;
+  margin-bottom: 8px;
+  margin-top: 10px;
+  padding-bottom: 4px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 900px;
+}
+.inputRow {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+.inputWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+}
+.inputWrapper label {
+  font-size: 12px;
+  color: #888;
+  font-weight: 600;
+}
+.inputWrapper input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  background-color: #fff;
+}
+.inputWrapper input:focus {
+  border-color: #1769e3;
+}
+.inputWithIcon {
+  position: relative;
+  width: 90%;
+}
+
+.inputWithIcon input {
+  width: 90%;
+  padding-right: 35px; /* Espaço para o ícone */
+}
+
+.searchIcon {
+  position: absolute;
+  right: -15px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #666;
+}
+
+.searchIcon:hover {
+  color: #1769e3;
+}
+
+.togglesRow {
+  display: flex;
+  gap: 30px;
+  margin-top: 5px;
+  align-items: center;
+}
+.toggleContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.toggleLabel {
+  font-size: 14px;
+  color: #666;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 18px;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: #1769e3;
+}
+input:checked + .slider:before {
+  transform: translateX(18px);
+}
+
+.configSection {
+  margin-top: 5px;
+}
+
+.configFilters {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.configFilters .btn {
+  height: 35px;
+}
+
+.innerTableContainer {
+  width: 100%;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: white;
+  overflow-x: auto;
+}

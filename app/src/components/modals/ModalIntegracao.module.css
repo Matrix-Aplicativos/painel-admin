@@ -1,0 +1,222 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.container {
+  width: 100%;
+  max-width: 600px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.2s ease-in-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee; 
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 20px; 
+  font-weight: 800;
+  margin: 0;
+  color: #333;
+  text-transform: uppercase;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+  color: #999;
+  font-size: 24px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.closeButton:hover {
+  color: #ef4444;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #444;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.formRow {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.inputGroup label {
+  font-size: 13px;
+  font-weight: 400;
+  color: #666;
+}
+
+.inputGroup input,
+.inputGroup select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  color: #333;
+  width: 100%;
+  box-sizing: border-box; 
+}
+
+.inputGroup input:focus,
+.inputGroup select:focus {
+  border-color: #1769e3;
+}
+
+.passwordWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.passwordWrapper input {
+  padding-right: 40px; /* Espaço para o ícone de copiar */
+  width: 100%;
+}
+
+/* Ícone de Copiar dentro do Input */
+.copyButton {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #666;
+  padding: 0;
+}
+.copyButton:hover {
+  color: #1769e3;
+}
+
+.generateButton {
+  margin-top: 23px; /* Compensa a label */
+  padding: 0 18px;
+  background: #1769e3;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px; /* Altura igual aos inputs padrão */
+}
+.generateButton:hover {
+  background: #0f4fb4;
+}
+
+.footer {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.btnCancel {
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: #666;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 400;
+}
+.btnCancel:hover {
+  background: #f5f5f5;
+}
+
+.btnSave {
+  background: #17e381;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btnSave:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 600px) {
+  .formRow {
+    flex-direction: column;
+    gap: 15px;
+  }
+  .generateButton {
+    width: 100%;
+    margin-top: 0;
+  }
+}

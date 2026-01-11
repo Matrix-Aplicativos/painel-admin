@@ -1,0 +1,212 @@
+.container {
+  width: 100%;
+  height: 100%; 
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; 
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px; 
+  flex-shrink: 0; 
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--header-text-color);
+  text-transform: uppercase;
+}
+
+.monthNavigator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background-color: var(--modal-bg-color);
+  padding: 8px 25px; 
+  border-radius: 8px;
+  border: 1px solid var(--wrapper-border-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.monthTitle {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--header-text-color);
+  text-transform: capitalize;
+  min-width: 150px;
+  text-align: center;
+}
+
+.navButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #1769e3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+.navButton:hover {
+  background-color: var(--button-hover-bg-color);
+}
+
+.calendarContainer {
+  flex-grow: 1; 
+  min-height: 0; 
+  background-color: var(--modal-bg-color);
+  border: 1px solid var(--wrapper-border-color);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.weekHeader {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background-color: var(--button-hover-bg-color);
+  border-bottom: 1px solid var(--wrapper-border-color);
+  flex-shrink: 0;
+}
+
+.weekDay {
+  padding: 8px; 
+  text-align: center;
+  font-weight: bold;
+  color: var(--text-placeholder-color);
+  text-transform: uppercase;
+  font-size: 12px;
+  border-right: 1px solid var(--wrapper-border-color);
+}
+.weekDay:last-child {
+  border-right: none;
+}
+
+.daysGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  height: 100%; 
+  min-height: 0;
+}
+
+.dayCell {
+  border-right: 1px solid var(--wrapper-border-color);
+  border-bottom: 1px solid var(--wrapper-border-color);
+  padding: 4px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background-color: var(--modal-bg-color);
+  overflow: hidden; 
+}
+.dayCell:nth-child(7n) {
+  border-right: none;
+}
+
+.dayCell:nth-last-child(-n + 7) {
+  border-bottom: none;
+}
+
+.dayNumber {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--header-text-color);
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  align-self: flex-end;
+  flex-shrink: 0;
+}
+
+.currentDay .dayNumber {
+  background-color: #1769e3;
+  color: white;
+}
+
+.otherMonth {
+  background-color: var(--button-hover-bg-color);
+  opacity: 0.3; 
+}
+
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto; 
+  flex-grow: 1;
+  padding-right: 2px;
+}
+
+.eventList::-webkit-scrollbar {
+  width: 3px;
+}
+.eventList::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 3px;
+}
+
+.eventCard {
+  background-color: white;
+  border-radius: 4px;
+  padding: 4px 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eee;
+  border-left-width: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  flex-shrink: 0; 
+}
+
+.statusLate {
+  border-left-color: #ef4444;
+  background-color: #fef2f2;
+}
+.statusPaid {
+  border-left-color: #22c55e;
+  background-color: #f0fdf4;
+}
+.statusPending {
+  border-left-color: #1769e3;
+  background-color: #eff6ff;
+}
+
+.clientName {
+  font-size: 10px;
+  font-weight: 700;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.categoryTag {
+  align-self: flex-start;
+  font-size: 8px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 400;
+  text-transform: capitalize;
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #555;
+}
+
+.cardValue {
+  font-size: 10px;
+  font-weight: 700;
+  color: #333;
+}
