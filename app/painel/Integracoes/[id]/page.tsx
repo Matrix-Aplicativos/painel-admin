@@ -123,12 +123,9 @@ export default function IntegrationDetailsPage() {
       cnpj: formDataIntegracao.cnpj,
       maxEmpresas: formDataIntegracao.maxEmpresas,
       usuario: {
-        // CORREÇÃO AQUI:
-        // 'nome' recebe o Nome Real (evita que o backend sobrescreva com o login)
-        // 'nomeUsuario' recebe o Login/CPF (para garantir que o login seja salvo)
         nome: formDataIntegracao.nome,
         nomeUsuario: formDataIntegracao.login,
-        login: formDataIntegracao.login, // Enviamos também como 'login' por garantia
+        login: formDataIntegracao.login, 
         senha: formDataIntegracao.senha || undefined,
       },
       ativo: integracao?.ativo ?? true,
