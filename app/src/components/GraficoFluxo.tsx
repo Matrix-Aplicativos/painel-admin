@@ -101,7 +101,20 @@ export default function DashboardFluxo({
       saldoTotalAcumulado += val;
 
       if (!item.datapagamento) return;
-      const d = new Date(item.datapagamento);
+
+      const dataStr = String(item.datapagamento); 
+      const [anoStr, mesStr, diaStr] = dataStr.split("T")[0].split("-");
+
+      const d = new Date(
+        Number(anoStr),
+        Number(mesStr) - 1,
+        Number(diaStr),
+        12,
+        0,
+        0
+      );
+
+      // --------------------------------
 
       let isInPeriod = false;
       let key = -1;
