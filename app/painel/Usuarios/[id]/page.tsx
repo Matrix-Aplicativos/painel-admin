@@ -260,7 +260,7 @@ export default function UserDetailsPage() {
   const handleSaveFuncionario = async (dadosModal: any) => {
     const idEmpresaVinculo = Number(selectedCompanyId);
 
-    const idEmpresaFuncionario = dadosModal.codEmpresa
+    const idEmpresaFuncionario = !isNaN(dadosModal.codEmpresa)
       ? Number(dadosModal.codEmpresa)
       : idEmpresaVinculo;
 
